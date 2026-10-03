@@ -30,7 +30,7 @@ public sealed record InlineSpan(InlineKind Kind, TextRange OpenMarker, TextRange
 ///   <item><see cref="Body"/> covers <c>Don't move.</c></item>
 /// </list>
 /// </summary>
-public sealed class ScriptLine
+public sealed record ScriptLine
 {
     public ElementType Type { get; init; }
 
@@ -65,9 +65,49 @@ public sealed class ScriptLine
     /// <summary>How far the line is indented: one level per tab (or per four spaces) at the start.</summary>
     public int IndentLevel { get; init; }
 
+    /// <summary>
+    /// The line's own settings, written as a tag at its start — <c>{center}</c>, <c>{page}</c>, <c>{caption right}</c>.
+    /// The editor hides it; it's how per-line alignment and hand-picked line types are saved in plain text.
+    /// </summary>
+    public TextRange Tag { get; init; }
+
+    /// <summary>This line's own alignment (from its tag), which wins over its style's alignment.</summary>
+    public TextAlign? Alignment { get; init; }
+
+    /// <summary>The ** or * around a label written in bold or italic, like <c>**AKIRA** Hi.</c></summary>
+    public IReadOnlyList<TextRange> LabelMarkers { get; init; } = [];
+
     /// <summary>True for lines like <c>BOB: hi</c> where BOB hasn't been added as a character yet.</summary>
     public bool IsUnknownSpeaker => Type == ElementType.Dialogue && Character == null;
 
-    /// <summary>True for <c>!text</c>: written as a description on purpose, whatever it looks like.</summary>
+    /// <summary>True for <c>!text</c> or <c>{text}</c>: written as a description on purpose, whatever it looks like.</summary>
     public bool IsForcedAction => Type == ElementType.Action && !Label.IsEmpty;
+
+    /// <summary>
+    /// The characters that only say how to format the line — the {tag}, the "# " of a heading, a leading "!",
+    /// and the ** and * around bold and italic. The editor hides them, except on the line being edited.
+    /// </summary>
+    public IReadOnlyList<TextRange> Markup()
+    {
+        var ranges = new List<TextRange>();
+        if (!Tag.IsEmpty) ranges.Add(Tag);
+        if ((Type == ElementType.Heading || IsForcedAction) && !Label.IsEmpty) ranges.Add(Label);
+        ranges.AddRange(LabelMarkers);
+        foreach (var span in Inlines)
+        {
+            ranges.Add(span.OpenMarker);
+            ranges.Add(span.CloseMarker);
+        }
+
+        // In order, with overlapping pieces joined (a {tag} and the "# " after it, say).
+        var merged = new List<TextRange>();
+        foreach (var range in ranges.Where(r => !r.IsEmpty).OrderBy(r => r.Start))
+        {
+            if (merged.Count > 0 && range.Start <= merged[^1].End)
+                merged[^1] = new TextRange(merged[^1].Start, Math.Max(merged[^1].End, range.End) - merged[^1].Start);
+            else
+                merged.Add(range);
+        }
+        return merged;
+    }
 }

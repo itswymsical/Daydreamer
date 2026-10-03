@@ -19,27 +19,39 @@ On first launch it creates a sample project, **My First Manga**, in
 
 ## Writing syntax
 
-| You type                      | It becomes                                                        |
-| ----------------------------- | ----------------------------------------------------------------- |
-| `# Chapter 1`                 | Heading                                                           |
-| `PAGE 1`                      | Page marker                                                       |
-| `PANEL 1`                     | Panel marker                                                      |
-| `AKIRA: Hello.`               | Dialogue, in AKIRA's style                                        |
-| `AKIRA (thought): Hmm.`       | Dialogue + a modifier rule (thought → italic)                     |
-| `CAPTION: Tokyo, 2045.`       | Caption (bold by default)                                         |
-| `CAPTION (AKIRA): I remember` | Caption in AKIRA's font                                           |
-| `SFX: KRAKOOM`                | Sound effect (italic by default)                                  |
-| `// note`                     | Note to yourself (faded, not counted)                             |
-| `**bold**` / `*italic*`       | Inline emphasis                                                   |
-| anything else                 | Description / prose                                               |
+| You type                          | It becomes                                                   |
+| --------------------------------- | ------------------------------------------------------------ |
+| `AKIRA Hello.` or `AKIRA: Hello.` | Dialogue, in AKIRA's style (a defined character, in capitals) |
+| `**AKIRA** Hello.`                | Also dialogue: a bold name counts too                        |
+| `AKIRA (thought) Hmm.`            | Dialogue + a modifier rule (thought → italic)                |
+| `PAGE 1` / `PANEL 1`              | Page and panel markers                                       |
+| `CAPTION Tokyo, 2045.`            | Caption (bold by default). `CAPTION:` and `CAPTION 2` work too |
+| `CAPTION (AKIRA): I remember`     | Caption in AKIRA's font                                      |
+| `SFX KRAKOOM`                     | Sound effect (italic by default). `SFX:` and `FX` work too   |
+| `// note`                         | Note to yourself (faded, not counted)                        |
+| `# Chapter 1`                     | Heading                                                      |
+| `**bold**` / `*italic*`           | Inline emphasis                                              |
+| `- item`, `1. item`, `[ ] task`   | Bulleted, numbered and checklist lines                       |
+| anything else                     | Description / prose                                          |
 
-An undefined name in ALL CAPS (`STRANGER: ...`) still counts as dialogue, but gets an orange
-dotted underline. Right-click the line, or click the name in the Characters panel, to add them.
+You don't have to type any of that, though: the **line menu** at the left of the toolbar
+("Description ▾", like Google Docs' "Normal text ▾") sets a line's kind directly. It stores the
+choice in a small tag at the start of the line, like `{caption}`, that the editor never shows.
+Alignment is stored the same way (`{center}`). The `#`, `!` and `**` you type yourself show
+faintly only on the line you're editing, so the page reads like a finished script.
+
+**Keywords** can be renamed per project in Styles → Keywords. A script that says `SCENE 3`
+instead of `PANEL 3` just renames the panel keyword, and the whole app follows. Toolbar buttons,
+menus, the status bar and the style list all say "Scene". The built-in words keep working too.
+
+An undefined name in ALL CAPS with a colon (`STRANGER: ...`) still counts as dialogue, with an
+orange dotted underline. Names that start lots of lines *without* a colon (`KAITO It's late.`)
+are suggested in the Characters panel, and **Add all** adds them in one go.
 
 ## Formatting
 
 You don't format words one by one; you format **kinds of lines**. Put the cursor on a line and
-use the toolbar's **font, size, color and line spacing**. The pill on the left of those controls
+use the toolbar's **font, size, color and spacing**. The pill on the left of those controls
 shows what you're changing:
 
 - On an AKIRA line, it's **AKIRA**: every AKIRA line changes.
@@ -50,8 +62,31 @@ Click the pill to open that style's full settings in the side panel. Text is gra
 and follows light/dark mode. Color is optional, and colors you pick are automatically nudged
 to stay readable on the page.
 
+The spacing button sets **line spacing** and **space between paragraphs** (like Docs' "add space
+before paragraph"). **Alignment** works like a word processor instead: it applies to the line
+the cursor is on, or the selected lines. To center *every* caption, use the Caption style's
+Alignment in the side panel.
+
 **Shortcuts:** type a name in CAPS to get a character pop-up · Ctrl+Space · Ctrl+B / Ctrl+I ·
-Ctrl+N new document · Ctrl+F find · Ctrl+S save (it also autosaves).
+Ctrl+Shift+L / E / R / J align · Ctrl+N new document · Ctrl+F find · Ctrl+S save (it also
+autosaves). Other programs sometimes claim Ctrl+Shift shortcuts for the whole computer (AMD's
+Radeon software uses Ctrl+Shift+L, for example), and then they never reach Daydreamer. The
+alignment button always works.
+
+## Bringing text in
+
+Import a `.docx` (Word or Google Docs) from the documents list or the Home page, or paste from
+Docs or Word:
+
+- Headings become pages, panels and so on (Styles → Importing & pasting). Heading 1 is a page,
+  Heading 4 a panel.
+- Lists, bold and italic come along, and centered or right-aligned lines stay that way.
+- An imported document's **font, size, line spacing and paragraph spacing** become the
+  project's, with an Undo button. Fonts packed inside the `.docx` (Google Docs does this) are
+  saved into the project's `fonts` folder, so they work even if they aren't installed.
+- If the document's panel headings all start with another word (`SCENE 1`, `SCENE 2`), that
+  word becomes the panel keyword.
+- Speakers are suggested from the text, ready to add as characters.
 
 ## Look and feel
 
@@ -65,23 +100,34 @@ Ctrl+N new document · Ctrl+F find · Ctrl+S save (it also autosaves).
 
 ```
 src/Daydreamer.Core/        ← all the logic; no UI code, so it's easy to test and reuse
-  Models/                     Character, TextStyle, StyleSheet, Project
+  Models/                     Character, TextStyle, StyleSheet, Keywords, Project
   Parsing/ScriptParser.cs     reads one line → "this is AKIRA's dialogue, modifier 'thought'"
   Formatting/StyleResolver    stacks styles: theme gray → Default → element → character → modifier
   Formatting/ThemePalette     the light and dark grays used when no color is chosen
+  Editing/                    the line menu (LineConverter), lists, indents, alignment tags
+  Import/                     .docx and clipboard HTML → script text, fonts and spacing
   Analysis/DocumentStats      word/page/panel counts, lines per character
+  Analysis/SpeakerFinder      spots likely speakers in scripts that don't use colons
   Storage/                    projects are folders, documents are .dream text files
 
 src/Daydreamer.App/         ← the WPF desktop app
   MainWindow.xaml(.cs)        the window, documents, saving
-  MainWindow.Formatting.cs    the toolbar's font/size/color/line spacing controls
+  MainWindow.Writing.cs       line menu, alignment, lists, hidden tags, paste and import
+  MainWindow.Formatting.cs    the toolbar's font/size/color/spacing controls
+  MainWindow.Home.cs          the Home page and its page previews
   MainWindow.Shell.cs         the custom title bar, maximize, snap layouts, theme + ambient toggles
   FormatTarget.cs             what the toolbar is currently editing
   Editor/ScriptColorizer      hooks the parser + resolver into the editor's drawing
-  Editor/WpfStyles            fonts, colors, readable-color adjustment, line spacing fonts
+  Editor/MarkupHider          hides tags, "# " and ** (live preview)
+  Editor/ListMarkerGenerator  draws bullets and clickable checkboxes
+  Editor/WpfStyles            fonts (incl. project fonts), colors, line spacing fonts
   Theming/ThemeManager        swaps light/dark (Themes/Light.xaml ↔ Themes/Dark.xaml)
   Ambient/                    the drifting lights (GlowMote, OrbSprites, AmbientField)
-  Controls/                   StyleEditor, ColorPicker
+  Controls/                   StyleEditor, ColorPicker, DocumentPreview
+
+third-party/AvalonEdit/     ← the editor control, as source (MIT), with small marked changes
+                              ("Daydreamer:") for per-line alignment, list indents and
+                              paragraph spacing
 
 tests/                      ← `dotnet test` runs both projects
 ```
@@ -118,8 +164,9 @@ every frame (about 20% of a CPU core), while the baked images cost about 4%.
 ```
 Daydreamer/
   My First Manga/
-    project.json      characters + style rules
+    project.json      characters, style rules, keywords
     Chapter 1.dream   your script (plain UTF-8 text)
+    fonts/            fonts that came packed in imported documents
     .trash/           deleted documents (recoverable)
 ```
 

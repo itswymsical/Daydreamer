@@ -60,11 +60,15 @@ public static partial class LineEditing
                 continue;
             }
 
-            string indent = LineConverter.LeadingWhitespace(line);
-            string words = p.Type == ElementType.ListItem || p.IsForcedAction ? p.Body.Of(line) : line.Trim();
+            // Keep the line's own alignment; any line-type tag gives way to the list.
+            var (indent, _, alignment, rest) = parser.SplitTag(line);
+            string words = p.Type == ElementType.ListItem || p.IsForcedAction || !p.Tag.IsEmpty && p.Label == p.Tag
+                ? p.Body.Of(line)
+                : rest.Trim();
             if (removing)
             {
-                result.Add(indent + LineConverter.AsDescription(words, parser));
+                string plain = LineConverter.AsDescription(words, parser);
+                result.Add(ScriptParser.JoinTag(indent, null, alignment, plain));
                 continue;
             }
 
@@ -73,7 +77,7 @@ public static partial class LineEditing
                 counters.Remove(deeper);
             int number = counters.GetValueOrDefault(p.IndentLevel) + 1;
             counters[p.IndentLevel] = number;
-            result.Add(indent + Marker(kind, number) + words);
+            result.Add(ScriptParser.JoinTag(indent, null, alignment, Marker(kind, number) + words));
         }
         return result;
     }
@@ -85,9 +89,10 @@ public static partial class LineEditing
         if (p.Type != ElementType.ListItem) return ListEnter.NotAList;
         if (p.Body.IsEmpty) return new ListEnter(EndList: true, NextPrefix: null);
 
-        string indent = LineConverter.LeadingWhitespace(line);
+        string indent = parser.SplitTag(line).Indent;
         int number = p.List == ListKind.Numbered && int.TryParse(p.ListMarker.Of(line).TrimEnd('.', ')'), out int n) ? n + 1 : 1;
-        return new ListEnter(EndList: false, NextPrefix: indent + Marker(p.List, number));
+        // The next item keeps this one's alignment, like the next paragraph does in a word processor.
+        return new ListEnter(EndList: false, NextPrefix: ScriptParser.JoinTag(indent, null, p.Alignment, Marker(p.List, number)));
     }
 
     /// <summary>
@@ -129,6 +134,16 @@ public static partial class LineEditing
         if (p.List != ListKind.Checkbox) return line;
         var marker = p.ListMarker;
         return line[..marker.Start] + (p.IsChecked ? "[ ]" : "[x]") + line[marker.End..];
+    }
+
+    /// <summary>
+    /// Sets one line's own alignment, kept in its hidden tag (e.g. <c>{center}</c>). Pass null to let the
+    /// line follow its style's alignment again.
+    /// </summary>
+    public static string SetLineAlignment(string line, TextAlign? alignment, ScriptParser parser)
+    {
+        var (indent, typeWord, _, rest) = parser.SplitTag(line);
+        return ScriptParser.JoinTag(indent, typeWord, alignment, rest);
     }
 
     public static string Indent(string line) => IndentUnit + line;

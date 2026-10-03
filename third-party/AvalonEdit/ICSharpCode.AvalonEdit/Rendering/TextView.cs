@@ -221,6 +221,12 @@ namespace ICSharpCode.AvalonEdit.Rendering
 		public Func<DocumentLine, int> WrapIndentProvider { get; set; }
 
 		/// <summary>
+		/// Daydreamer: extra space above each line, in device-independent pixels (paragraph spacing,
+		/// like "space before paragraph" in a word processor). Null or 0 means none.
+		/// </summary>
+		public Func<DocumentLine, double> SpaceAboveProvider { get; set; }
+
+		/// <summary>
 		/// Occurs when a text editor option has changed.
 		/// </summary>
 		public event PropertyChangedEventHandler OptionChanged;
@@ -1159,6 +1165,9 @@ namespace ICSharpCode.AvalonEdit.Rendering
 				}
 				lastLineBreak = textLine.GetTextLineBreak();
 			}
+			// Daydreamer: paragraph spacing sits above the line's rows and counts towards its height.
+			double spaceAbove = SpaceAboveProvider != null ? SpaceAboveProvider(visualLine.FirstDocumentLine) : 0;
+			visualLine.SpaceAbove = spaceAbove > 0 && !double.IsInfinity(spaceAbove) ? spaceAbove : 0;
 			visualLine.SetTextLines(textLines);
 			heightTree.SetHeight(visualLine.FirstDocumentLine, visualLine.Height);
 			return visualLine;
@@ -1218,6 +1227,7 @@ namespace ICSharpCode.AvalonEdit.Rendering
 				Point pos = new Point(-scrollOffset.X, -clippedPixelsOnTop);
 				foreach (VisualLine visualLine in visibleVisualLines) {
 					int offset = 0;
+					pos.Y += visualLine.SpaceAbove; // Daydreamer: paragraph spacing
 					foreach (TextLine textLine in visualLine.TextLines) {
 						foreach (var span in textLine.GetTextRunSpans()) {
 							InlineObjectRun inline = span.Value as InlineObjectRun;

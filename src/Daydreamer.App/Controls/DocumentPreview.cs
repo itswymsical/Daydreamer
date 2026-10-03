@@ -29,6 +29,16 @@ public sealed class DocumentPreview : FrameworkElement
     public static readonly DependencyProperty CharactersProperty = DependencyProperty.Register(
         nameof(Characters), typeof(IEnumerable<Character>), typeof(DocumentPreview), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
 
+    public static readonly DependencyProperty KeywordsProperty = DependencyProperty.Register(
+        nameof(Keywords), typeof(Keywords), typeof(DocumentPreview), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+
+    /// <summary>The project's words for PAGE, PANEL and so on.</summary>
+    public Keywords? Keywords
+    {
+        get => (Keywords?)GetValue(KeywordsProperty);
+        set => SetValue(KeywordsProperty, value);
+    }
+
     /// <summary>The start of the document (only the first page's worth is drawn).</summary>
     public string Text
     {
@@ -53,7 +63,7 @@ public sealed class DocumentPreview : FrameworkElement
         if (Styles is not { } styles || string.IsNullOrEmpty(Text) || ActualWidth <= 0) return;
 
         var palette = ThemeManager.Palette;
-        var parser = new ScriptParser(new CharacterRegistry(Characters ?? []));
+        var parser = new ScriptParser(new CharacterRegistry(Characters ?? []), Keywords);
         double scale = ActualWidth / PageWidth;
         double pageHeight = ActualHeight / scale;
         double pixelsPerDip = VisualTreeHelper.GetDpi(this).PixelsPerDip;
@@ -63,26 +73,36 @@ public sealed class DocumentPreview : FrameworkElement
         dc.PushTransform(new ScaleTransform(scale, scale));
 
         double y = TopMargin;
+        bool first = true;
         foreach (string raw in ScriptParser.SplitLines(Text))
         {
             if (y > pageHeight) break;
             var line = parser.ParseLine(raw);
+            var body = StyleResolver.ResolveBody(styles, line, palette);
+            if (!first) y += WpfStyles.PointsToPixels(body.SpaceBefore); // paragraph spacing, as in the editor
+            first = false;
             if (line.Type == ElementType.Blank)
             {
                 y += Measure(" ", baseStyle, palette, pixelsPerDip).Height;
                 continue;
             }
 
+            // Like the editor, the page shows the words without their markup ({tags}, "# ", **).
+            var hidden = line.Markup();
+            int Shown(int index) => index - hidden.Where(r => r.Start < index).Sum(r => Math.Min(r.End, index) - r.Start);
+            string shown = string.Concat(raw.Select((c, i) => hidden.Any(r => i >= r.Start && i < r.End) ? "" : c.ToString()));
+            if (shown.Length == 0) shown = " ";
+
             var segments = StyleResolver.Segment(styles, line, raw.Length, palette);
-            var text = Measure(raw, segments[0].Style, palette, pixelsPerDip);
+            var text = Measure(shown, segments[0].Style, palette, pixelsPerDip);
             foreach (var segment in segments.Skip(1))
             {
-                if (segment.Range.IsEmpty) continue;
-                int start = segment.Range.Start, length = segment.Range.Length;
-                text.SetFontTypeface(WpfStyles.Typeface(segment.Style), start, length);
-                text.SetFontSize(WpfStyles.PointsToPixels(segment.Style.FontSize), start, length);
-                text.SetForegroundBrush(WpfStyles.TextBrush(segment.Style.Color, palette), start, length);
-                if (segment.IsCompleted) text.SetTextDecorations(TextDecorations.Strikethrough, start, length);
+                int start = Shown(segment.Range.Start), end = Shown(segment.Range.End);
+                if (end <= start || end > shown.Length) continue;
+                text.SetFontTypeface(WpfStyles.Typeface(segment.Style), start, end - start);
+                text.SetFontSize(WpfStyles.PointsToPixels(segment.Style.FontSize), start, end - start);
+                text.SetForegroundBrush(WpfStyles.TextBrush(segment.Style.Color, palette), start, end - start);
+                if (segment.IsCompleted) text.SetTextDecorations(TextDecorations.Strikethrough, start, end - start);
             }
             dc.DrawText(text, new Point(PageMargin, y));
             y += text.Height;

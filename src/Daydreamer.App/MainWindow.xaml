@@ -164,7 +164,7 @@
                             </ComboBox.ItemsPanel>
                             <ComboBox.ItemTemplate>
                                 <DataTemplate>
-                                    <TextBlock Text="{Binding}" FontFamily="{Binding}" FontSize="14" />
+                                    <TextBlock Text="{Binding}" FontFamily="{Binding Converter={StaticResource FontName}}" FontSize="14" />
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>
@@ -203,22 +203,23 @@
                         </Grid>
 
                         <Button x:Name="LineSpacingButton" Style="{StaticResource FlatButton}" Margin="2,0,0,0"
-                                ToolTip="Line spacing" IsEnabled="{Binding IsEnabled}" Click="LineSpacingButton_Click">
+                                ToolTip="Line and paragraph spacing" IsEnabled="{Binding IsEnabled}" Click="LineSpacingButton_Click">
                             <Path Style="{StaticResource IconPath}" Data="{StaticResource IconLineSpacing}" />
-                        </Button>
-                        <Button x:Name="AlignButton" Style="{StaticResource FlatButton}" Margin="2,0,0,0"
-                                ToolTip="Alignment" IsEnabled="{Binding IsEnabled}" Click="AlignButton_Click">
-                            <Path Style="{StaticResource IconPath}" Data="{Binding Alignment, Converter={StaticResource AlignmentIcon}}" />
                         </Button>
                     </StackPanel>
 
-                    <!-- These edit the text itself: emphasis, lists, indents. -->
+                    <!-- These edit the text itself: emphasis, alignment, lists, indents. -->
                     <Border Style="{StaticResource ToolbarDivider}" />
-                    <Button Style="{StaticResource FlatButton}" Click="Bold_Click" ToolTip="Bold (Ctrl+B) — wraps the selection in **stars**">
+                    <Button Style="{StaticResource FlatButton}" Click="Bold_Click" ToolTip="Bold (Ctrl+B)">
                         <TextBlock Style="{StaticResource Icon}" Text="&#xE8DD;" />
                     </Button>
-                    <Button Style="{StaticResource FlatButton}" Click="Italic_Click" ToolTip="Italic (Ctrl+I) — wraps the selection in *stars*">
+                    <Button Style="{StaticResource FlatButton}" Click="Italic_Click" ToolTip="Italic (Ctrl+I)">
                         <TextBlock Style="{StaticResource Icon}" Text="&#xE8DB;" />
+                    </Button>
+                    <!-- Aligns the line the cursor is on (or the selected lines), like Google Docs. -->
+                    <Button x:Name="AlignButton" Style="{StaticResource FlatButton}" Click="AlignButton_Click"
+                            ToolTip="Align this line (Ctrl+Shift+L, E, R or J)">
+                        <Path x:Name="AlignIcon" Style="{StaticResource IconPath}" Data="{StaticResource IconAlignLeft}" />
                     </Button>
                     <Button Style="{StaticResource FlatButton}" Click="BulletList_Click" ToolTip="Bulleted list (lines starting with - )">
                         <Path Style="{StaticResource IconPath}" Data="{StaticResource IconBulletList}" />
@@ -242,16 +243,16 @@
 
                     <TextBlock Text="Insert" VerticalAlignment="Center" Margin="6,0,4,0" FontSize="12"
                                Foreground="{DynamicResource MutedTextBrush}" Visibility="{DynamicResource ToolbarLabelVisibility}" />
-                    <Button Style="{StaticResource FlatButton}" Click="InsertPage_Click" ToolTip="New page (numbered automatically)">
+                    <Button x:Name="InsertPageButton" Style="{StaticResource FlatButton}" Click="InsertPage_Click" ToolTip="New page (numbered automatically)">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource Icon}" Text="&#xE7C3;" />
-                            <TextBlock Style="{StaticResource ToolbarLabel}" Text="Page" />
+                            <TextBlock x:Name="InsertPageLabel" Style="{StaticResource ToolbarLabel}" Text="Page" />
                         </StackPanel>
                     </Button>
-                    <Button Style="{StaticResource FlatButton}" Click="InsertPanel_Click" ToolTip="New panel (numbered automatically)">
+                    <Button x:Name="InsertPanelButton" Style="{StaticResource FlatButton}" Click="InsertPanel_Click" ToolTip="New panel (numbered automatically)">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource Icon}" Text="&#xE8A9;" />
-                            <TextBlock Style="{StaticResource ToolbarLabel}" Text="Panel" />
+                            <TextBlock x:Name="InsertPanelLabel" Style="{StaticResource ToolbarLabel}" Text="Panel" />
                         </StackPanel>
                     </Button>
                     <Button Style="{StaticResource FlatButton}" Click="InsertDialogue_Click" ToolTip="Pick a character and start their line">
@@ -263,19 +264,19 @@
                     <Button Style="{StaticResource FlatButton}" Click="InsertCaption_Click" ToolTip="Caption / narration box">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource Icon}" Text="&#xE8D2;" />
-                            <TextBlock Style="{StaticResource ToolbarLabel}" Text="Caption" />
+                            <TextBlock x:Name="InsertCaptionLabel" Style="{StaticResource ToolbarLabel}" Text="Caption" />
                         </StackPanel>
                     </Button>
                     <Button Style="{StaticResource FlatButton}" Click="InsertSfx_Click" ToolTip="Sound effect">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource Icon}" Text="&#xE767;" />
-                            <TextBlock Style="{StaticResource ToolbarLabel}" Text="SFX" />
+                            <TextBlock x:Name="InsertSfxLabel" Style="{StaticResource ToolbarLabel}" Text="SFX" />
                         </StackPanel>
                     </Button>
                     <Button Style="{StaticResource FlatButton}" Click="InsertNote_Click" ToolTip="A note to yourself">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Style="{StaticResource Icon}" Text="&#xE70B;" />
-                            <TextBlock Style="{StaticResource ToolbarLabel}" Text="Note" />
+                            <TextBlock x:Name="InsertNoteLabel" Style="{StaticResource ToolbarLabel}" Text="Note" />
                         </StackPanel>
                     </Button>
                     <Border Style="{StaticResource ToolbarDivider}" />
@@ -432,7 +433,7 @@
                                         </StackPanel>
                                     </Button>
                                     <TextBlock Style="{StaticResource Hint}" VerticalAlignment="Center" Margin="0,0,10,0"
-                                               Text="Lines starting with a character's name and a colon use their style." />
+                                               Text="Lines starting with a character's name in capitals use their style." />
                                 </DockPanel>
 
                                 <ListBox x:Name="CharacterList" Grid.Row="1" Margin="10,4,10,0" MaxHeight="230"
@@ -478,8 +479,14 @@
                                 <Border x:Name="UnknownSpeakersPanel" Grid.Row="2" Margin="16,10,16,0" Padding="12,10"
                                         Background="{DynamicResource WarningSoftBrush}" CornerRadius="8" Visibility="Collapsed">
                                     <StackPanel>
-                                        <TextBlock Style="{StaticResource Hint}" Foreground="{DynamicResource WarningTextBrush}" Margin="0,0,0,6"
-                                                   Text="Speakers in this document that aren't characters yet:" />
+                                        <DockPanel Margin="0,0,0,6">
+                                            <Button x:Name="AddAllSpeakersButton" DockPanel.Dock="Right" Style="{StaticResource FlatButton}"
+                                                    Padding="8,2" MinHeight="22" FontSize="12" FontWeight="SemiBold" Margin="8,0,0,0"
+                                                    Foreground="{DynamicResource WarningTextBrush}" Click="AddAllSpeakers_Click"
+                                                    ToolTip="Add every name here as a character" Content="Add all" />
+                                            <TextBlock Style="{StaticResource Hint}" Foreground="{DynamicResource WarningTextBrush}" VerticalAlignment="Center"
+                                                       Text="These look like speakers in this document. Add them as characters so their lines are formatted:" />
+                                        </DockPanel>
                                         <ItemsControl x:Name="UnknownSpeakersList">
                                             <ItemsControl.ItemsPanel>
                                                 <ItemsPanelTemplate>
@@ -573,6 +580,47 @@
                                         <controls:StyleEditor DataContext="{Binding Style}" />
                                     </StackPanel>
 
+                                    <!-- The words that start special lines, renamable per project (SCENE instead of PANEL...) -->
+                                    <Border Height="1" Background="{DynamicResource DividerBrush}" Margin="6,20,6,12" />
+                                    <TextBlock Style="{StaticResource SectionHeader}" Text="KEYWORDS" Margin="6,0,6,0" />
+                                    <TextBlock Style="{StaticResource Hint}" Margin="6,4,6,8"
+                                               Text="The words that start special lines. Rename them to fit how you write — SCENE instead of PANEL, say. The usual words keep working too." />
+                                    <Grid Margin="6,0,6,0" DataContext="{Binding Keywords}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="96" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <Grid.Resources>
+                                            <Style TargetType="TextBlock" x:Key="KeywordLabel">
+                                                <Setter Property="VerticalAlignment" Value="Center" />
+                                                <Setter Property="FontSize" Value="12.5" />
+                                                <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+                                            </Style>
+                                            <Style TargetType="TextBox" BasedOn="{StaticResource {x:Type TextBox}}">
+                                                <Setter Property="Margin" Value="0,2" />
+                                                <Setter Property="CharacterCasing" Value="Upper" />
+                                                <EventSetter Event="KeyDown" Handler="KeywordBox_KeyDown" />
+                                            </Style>
+                                        </Grid.Resources>
+                                        <TextBlock Grid.Row="0" Style="{StaticResource KeywordLabel}" Text="Pages" />
+                                        <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding Page}" ToolTip="Starts a page: PAGE 1" />
+                                        <TextBlock Grid.Row="1" Style="{StaticResource KeywordLabel}" Text="Panels" />
+                                        <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding Panel}" ToolTip="Starts a panel: PANEL 1 (or SCENE 1, if you rename it)" />
+                                        <TextBlock Grid.Row="2" Style="{StaticResource KeywordLabel}" Text="Captions" />
+                                        <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding Caption}" ToolTip="Starts a caption: CAPTION: Tokyo, 2045." />
+                                        <TextBlock Grid.Row="3" Style="{StaticResource KeywordLabel}" Text="Sound effects" />
+                                        <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Sfx}" ToolTip="Starts a sound effect: SFX: KRAKOOM" />
+                                        <TextBlock Grid.Row="4" Style="{StaticResource KeywordLabel}" Text="Notes" />
+                                        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding Note}" ToolTip="Starts a note to yourself: NOTE: check this" />
+                                    </Grid>
+
                                     <!-- Modifier rules: (thought), (shout), ... -->
                                     <Border Height="1" Background="{DynamicResource DividerBrush}" Margin="6,20,6,12" />
                                     <DockPanel Margin="6,0,6,0">
@@ -616,7 +664,7 @@
                                     <TextBlock Style="{StaticResource SectionHeader}" Text="IMPORTING &amp; PASTING" Margin="6,0,6,0" />
                                     <TextBlock Style="{StaticResource Hint}" Margin="6,4,6,8"
                                                Text="What headings become when you paste from Google Docs or Word, or import a .docx file." />
-                                    <Grid Margin="6,0,6,0" DataContext="{Binding ImportHeadings}">
+                                    <Grid x:Name="HeadingMapGrid" Margin="6,0,6,0" DataContext="{Binding ImportHeadings}">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="96" />
                                             <ColumnDefinition Width="*" />
@@ -669,42 +717,45 @@
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
                                 <StackPanel Margin="16,8,16,16">
                                     <TextBlock Style="{StaticResource Hint}" Margin="0,4,0,4"
-                                               Text="Write normally — Daydreamer recognises these patterns and formats them for you." />
+                                               Text="Write normally — Daydreamer recognises these patterns and formats them for you. Or set any line's kind yourself from the menu at the left of the toolbar (“Description ▾”); nothing extra appears in your text." />
 
-                                    <TextBlock Style="{StaticResource GuideKey}" Text="# Chapter 1" />
-                                    <TextBlock Style="{StaticResource Hint}" Text="A chapter or scene heading." />
-                                    <TextBlock Style="{StaticResource GuideKey}" Text="PAGE 1" />
-                                    <TextBlock Style="{StaticResource Hint}" Text="Starts a page. Toolbar → Page numbers it for you." />
-                                    <TextBlock Style="{StaticResource GuideKey}" Text="PANEL 1" />
-                                    <TextBlock Style="{StaticResource Hint}" Text="Starts a panel. Numbering restarts on each page." />
-                                    <TextBlock Style="{StaticResource GuideKey}" Text="AKIRA: Hello." />
-                                    <TextBlock Style="{StaticResource Hint}" Text="Dialogue. Uses AKIRA's style if they're a character. Undefined names in CAPS get an orange dotted underline." />
-                                    <TextBlock Style="{StaticResource GuideKey}" Text="AKIRA (thought): Hmm." />
+                                    <TextBlock Style="{StaticResource GuideKey}" Text="AKIRA Hello.   AKIRA: Hello." />
+                                    <TextBlock Style="{StaticResource Hint}" Text="Dialogue: a character's name in capitals, then their line — with or without a colon. In bold works too (**AKIRA** Hello.). Names that start lots of lines are suggested on the Characters tab, ready to add." />
+                                    <TextBlock Style="{StaticResource GuideKey}" Text="AKIRA (thought) Hmm." />
                                     <TextBlock Style="{StaticResource Hint}" Text="A modifier. Rules in Styles → Dialogue modifiers apply on top." />
-                                    <TextBlock Style="{StaticResource GuideKey}" Text="CAPTION: Tokyo, 2045." />
-                                    <TextBlock Style="{StaticResource Hint}" Text="Narration box. CAPTION (AKIRA): uses AKIRA's font." />
-                                    <TextBlock Style="{StaticResource GuideKey}" Text="SFX: KRAKOOM" />
-                                    <TextBlock Style="{StaticResource Hint}" Text="Sound effect. FX: works too." />
+                                    <TextBlock Style="{StaticResource GuideKey}" Text="PAGE 1     PANEL 1" />
+                                    <TextBlock Style="{StaticResource Hint}" Text="Start a page or a panel; the toolbar numbers them for you. Rename the words in Styles → Keywords (SCENE 1, say)." />
+                                    <TextBlock Style="{StaticResource GuideKey}" Text="CAPTION Tokyo, 2045." />
+                                    <TextBlock Style="{StaticResource Hint}" Text="Narration box (with or without a colon, or numbered: CAPTION 2). CAPTION (AKIRA): uses AKIRA's font." />
+                                    <TextBlock Style="{StaticResource GuideKey}" Text="SFX KRAKOOM" />
+                                    <TextBlock Style="{StaticResource Hint}" Text="Sound effect. FX works too." />
                                     <TextBlock Style="{StaticResource GuideKey}" Text="// note to self" />
                                     <TextBlock Style="{StaticResource Hint}" Text="Not part of the script and not counted. NOTE: works too." />
+                                    <TextBlock Style="{StaticResource GuideKey}" Text="# Chapter 1" />
+                                    <TextBlock Style="{StaticResource Hint}" Text="A heading. The # disappears once you leave the line." />
                                     <TextBlock Style="{StaticResource GuideKey}" Text="**bold**   *italic*" />
-                                    <TextBlock Style="{StaticResource Hint}" Text="Emphasis inside any line." />
+                                    <TextBlock Style="{StaticResource Hint}" Text="Emphasis inside any line (Ctrl+B / Ctrl+I). The stars only show on the line you're editing." />
                                     <TextBlock Style="{StaticResource GuideKey}" Text="- item    1. item    [ ] task" />
                                     <TextBlock Style="{StaticResource Hint}" Text="Bulleted, numbered and checklist lines. Enter continues a list; Tab and Shift+Tab nest it." />
-                                    <TextBlock Style="{StaticResource GuideKey}" Text="!INT. STATION: night" />
-                                    <TextBlock Style="{StaticResource Hint}" Text="A ! at the start forces a line to read as a description, whatever it looks like. The line type menu adds it for you." />
                                     <TextBlock Style="{StaticResource GuideKey}" Text="Anything else" />
                                     <TextBlock Style="{StaticResource Hint}" Text="Panel descriptions and prose." />
 
                                     <TextBlock Style="{StaticResource SectionHeader}" Text="FORMATTING" Margin="0,22,0,2" />
                                     <TextBlock Style="{StaticResource Hint}"
-                                               Text="Put the cursor on a line and use the toolbar's font, size, color and line spacing. The change applies to every line of that kind — every AKIRA line, every SFX line — so a script never needs formatting by hand. On an empty line, it changes Default text, which every kind of line starts from." />
+                                               Text="Put the cursor on a line and use the toolbar's font, size, color and spacing. The change applies to every line of that kind — every AKIRA line, every SFX line — so a script never needs formatting by hand. On an empty line, it changes Default text, which every kind of line starts from." />
+                                    <TextBlock Style="{StaticResource Hint}" Margin="0,8,0,0"
+                                               Text="Alignment is different: like a word processor, it's just for the line you're on (or the lines you've selected). A line remembers its alignment, and the kind you picked from the menu, in a little tag at its start that stays hidden." />
+
+                                    <TextBlock Style="{StaticResource SectionHeader}" Text="BRINGING TEXT IN" Margin="0,22,0,2" />
+                                    <TextBlock Style="{StaticResource Hint}"
+                                               Text="Import a .docx (Word or Google Docs) or paste from them: headings become pages and panels (Styles → Importing), lists and emphasis come along, centered lines stay centered, and an imported document's font, size and spacing become your project's — with an Undo." />
 
                                     <TextBlock Style="{StaticResource SectionHeader}" Text="SHORTCUTS" Margin="0,22,0,2" />
                                     <TextBlock Style="{StaticResource Hint}" LineHeight="21">
                                         <Bold>Type a name in CAPS</Bold> — pick the character from the pop-up<LineBreak />
                                         <Bold>Ctrl+Space</Bold> — show characters and elements<LineBreak />
                                         <Bold>Ctrl+B / Ctrl+I</Bold> — bold / italic<LineBreak />
+                                        <Bold>Ctrl+Shift+L / E / R / J</Bold> — align left / center / right / justify<LineBreak />
                                         <Bold>Ctrl+N</Bold> — new document<LineBreak />
                                         <Bold>Ctrl+F</Bold> — find<LineBreak />
                                         <Bold>Ctrl+S</Bold> — save now (it also saves automatically)
@@ -749,7 +800,7 @@
                                 <TextBlock Text="A new story or series" Margin="2,2,2,0" FontSize="11.5" Foreground="{DynamicResource MutedTextBrush}" />
                             </StackPanel>
                         </Button>
-                        <Button Style="{StaticResource HomeCard}" Width="214" Click="Import_Click">
+                        <Button Style="{StaticResource HomeCard}" Width="214" Click="Import_Click" AutomationProperties.Name="Import a document">
                             <StackPanel>
                                 <Border Height="120" Background="{DynamicResource PageBrush}" CornerRadius="6"
                                         BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1">
@@ -779,7 +830,7 @@
                                     <StackPanel>
                                         <Border Height="252" Background="{DynamicResource PageBrush}" CornerRadius="6"
                                                 BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1" ClipToBounds="True">
-                                            <controls:DocumentPreview Text="{Binding Preview}" Styles="{Binding Styles}" Characters="{Binding Characters}" />
+                                            <controls:DocumentPreview Text="{Binding Preview}" Styles="{Binding Styles}" Characters="{Binding Characters}" Keywords="{Binding Keywords}" />
                                         </Border>
                                         <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13.5" Margin="2,10,2,0" TextTrimming="CharacterEllipsis" />
                                         <TextBlock Margin="2,2,2,0" FontSize="11.5" Foreground="{DynamicResource MutedTextBrush}" TextTrimming="CharacterEllipsis">

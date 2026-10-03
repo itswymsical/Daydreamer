@@ -5,6 +5,7 @@
              xmlns:app="clr-namespace:Daydreamer.App">
     <UserControl.Resources>
         <app:AlignmentChoiceConverter x:Key="AlignmentChoice" />
+        <app:FontNameConverter x:Key="FontName" />
         <!-- Our three-state check box should look like every other (Windows 11) check box. -->
         <Style TargetType="controls:InheritCheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
             <Setter Property="MinWidth" Value="0" />
@@ -24,7 +25,7 @@
             </ComboBox.ItemsPanel>
             <ComboBox.ItemTemplate>
                 <DataTemplate>
-                    <TextBlock Text="{Binding}" FontFamily="{Binding}" FontSize="14" />
+                    <TextBlock Text="{Binding}" FontFamily="{Binding Converter={StaticResource FontName}}" FontSize="14" />
                 </DataTemplate>
             </ComboBox.ItemTemplate>
         </ComboBox>
@@ -47,9 +48,24 @@
             </StackPanel>
         </Grid>
 
-        <TextBlock Style="{StaticResource FieldLabel}" Text="Alignment" />
-        <ComboBox ItemsSource="{x:Static app:AlignmentChoiceConverter.Choices}"
-                  SelectedItem="{Binding Alignment, Converter={StaticResource AlignmentChoice}}" />
+        <Grid Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Style="{StaticResource FieldLabel}" Margin="0,0,0,4" Text="Alignment" />
+                <ComboBox ItemsSource="{x:Static app:AlignmentChoiceConverter.Choices}"
+                          ToolTip="How every line of this kind is aligned. A single line can still be aligned its own way from the toolbar."
+                          SelectedItem="{Binding Alignment, Converter={StaticResource AlignmentChoice}}" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                <TextBlock Style="{StaticResource FieldLabel}" Margin="0,0,0,4" Text="Space above (pt)" />
+                <ComboBox IsEditable="True" ItemsSource="{x:Static controls:FontList.ParagraphSpacings}"
+                          ToolTip="Extra space above each paragraph, like a word processor's paragraph spacing (12 is about a blank line). Leave empty to inherit."
+                          Text="{Binding SpaceBefore, TargetNullValue='', UpdateSourceTrigger=PropertyChanged, Delay=400}" />
+            </StackPanel>
+        </Grid>
 
         <TextBlock Style="{StaticResource FieldLabel}" Text="Emphasis" />
         <WrapPanel>

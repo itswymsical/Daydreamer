@@ -88,24 +88,29 @@ public class AlignmentAndChecklistStyleTests
 public class LineConverterTests
 {
     private readonly ScriptParser _parser = new(new CharacterRegistry([new Character { Name = "AKIRA" }]));
-    private readonly LineContext _context = new(NextPageNumber: 3, NextPanelNumber: 2, Speaker: "MIKA");
+    private readonly LineContext _context = new(Speaker: "MIKA");
 
     [Theory]
-    [InlineData("A quiet street.", ElementType.Caption, "CAPTION: A quiet street.")]
-    [InlineData("A quiet street.", ElementType.Sfx, "SFX: A quiet street.")]
-    [InlineData("A quiet street.", ElementType.Note, "// A quiet street.")]
-    [InlineData("A quiet street.", ElementType.Heading, "# A quiet street.")]
-    [InlineData("A quiet street.", ElementType.Page, "PAGE 3: A quiet street.")]
-    [InlineData("A quiet street.", ElementType.Panel, "PANEL 2: A quiet street.")]
+    [InlineData("A quiet street.", ElementType.Caption, "{caption} A quiet street.")]
+    [InlineData("A quiet street.", ElementType.Sfx, "{sfx} A quiet street.")]
+    [InlineData("A quiet street.", ElementType.Note, "{note} A quiet street.")]
+    [InlineData("A quiet street.", ElementType.Heading, "{heading} A quiet street.")]
+    [InlineData("A quiet street.", ElementType.Page, "{page} A quiet street.")]
+    [InlineData("A quiet street.", ElementType.Panel, "{panel} A quiet street.")]
     [InlineData("A quiet street.", ElementType.Dialogue, "MIKA: A quiet street.")]
     [InlineData("CAPTION: Tokyo.", ElementType.Action, "Tokyo.")]
-    [InlineData("SFX: BOOM", ElementType.Caption, "CAPTION: BOOM")]
+    [InlineData("SFX: BOOM", ElementType.Caption, "{caption} BOOM")]
     [InlineData("# The End", ElementType.Action, "The End")]
-    [InlineData("PAGE 1: The Arrival", ElementType.Heading, "# The Arrival")]
-    [InlineData("PANEL 4", ElementType.Action, "")]
+    [InlineData("PAGE 1: The Arrival", ElementType.Heading, "{heading} The Arrival")]
+    [InlineData("{page} The Arrival", ElementType.Heading, "{heading} The Arrival")]
+    [InlineData("PANEL 2", ElementType.Panel, "PANEL 2")]
+    [InlineData("Panel 4", ElementType.Page, "{page} Panel 4")]
+    [InlineData("{center} Hello", ElementType.Caption, "{caption center} Hello")]
+    [InlineData("{caption right} Tokyo.", ElementType.Action, "{right} Tokyo.")]
+    [InlineData("PANEL 4", ElementType.Action, "{text} PANEL 4")]
     [InlineData("// a note", ElementType.Action, "a note")]
-    [InlineData("- item", ElementType.Caption, "CAPTION: item")]
-    [InlineData("\tindented", ElementType.Sfx, "\tSFX: indented")]
+    [InlineData("- item", ElementType.Caption, "{caption} item")]
+    [InlineData("\tindented", ElementType.Sfx, "\t{sfx} indented")]
     public void Converts_lines_keeping_their_words(string line, ElementType target, string expected)
     {
         Assert.Equal(expected, LineConverter.ConvertTo(line, target, _parser, _context));
@@ -114,8 +119,8 @@ public class LineConverterTests
     [Fact]
     public void Misread_dialogue_becomes_a_forced_description()
     {
-        // "INT. STATION" written in caps with a colon reads as a speaker; the ! makes it a description.
-        Assert.Equal("!INT. STATION: night", LineConverter.ConvertTo("INT. STATION: night", ElementType.Action, _parser, _context));
+        // "INT. STATION" written in caps with a colon reads as a speaker; the {text} tag makes it a description.
+        Assert.Equal("{text} INT. STATION: night", LineConverter.ConvertTo("INT. STATION: night", ElementType.Action, _parser, _context));
     }
 
     [Fact]
@@ -173,6 +178,7 @@ public class LineEditingTests
         Assert.Equal("[ ] ", LineEditing.OnEnter("[x] Done", _parser).NextPrefix);
         Assert.True(LineEditing.OnEnter("- ", _parser).EndList);
         Assert.False(LineEditing.OnEnter("Just text", _parser).IsList);
+        Assert.Equal("{center} - ", LineEditing.OnEnter("{center} - Centered item", _parser).NextPrefix);
     }
 
     [Fact]

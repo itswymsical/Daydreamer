@@ -116,6 +116,11 @@ namespace ICSharpCode.AvalonEdit.Rendering
 		public double Height { get; private set; }
 
 		/// <summary>
+		/// Daydreamer: empty space above the first text line (paragraph spacing). Included in <see cref="Height"/>.
+		/// </summary>
+		public double SpaceAbove { get; internal set; }
+
+		/// <summary>
 		/// Gets the Y position of the line. This is measured in device-independent pixels relative to the start of the document.
 		/// </summary>
 		public double VisualTop { get; internal set; }
@@ -279,7 +284,7 @@ namespace ICSharpCode.AvalonEdit.Rendering
 		internal void SetTextLines(List<TextLine> textLines)
 		{
 			this.textLines = textLines.AsReadOnly();
-			Height = 0;
+			Height = SpaceAbove; // Daydreamer: paragraph spacing
 			foreach (TextLine line in textLines)
 				Height += line.Height;
 		}
@@ -351,7 +356,7 @@ namespace ICSharpCode.AvalonEdit.Rendering
 		{
 			if (textLine == null)
 				throw new ArgumentNullException("textLine");
-			double pos = VisualTop;
+			double pos = VisualTop + SpaceAbove; // Daydreamer: rows start below the paragraph spacing
 			foreach (TextLine tl in TextLines) {
 				if (tl == textLine) {
 					switch (yPositionMode) {
@@ -402,7 +407,7 @@ namespace ICSharpCode.AvalonEdit.Rendering
 		public TextLine GetTextLineByVisualYPosition(double visualTop)
 		{
 			const double epsilon = 0.0001;
-			double pos = this.VisualTop;
+			double pos = this.VisualTop + SpaceAbove; // Daydreamer: paragraph spacing
 			foreach (TextLine tl in TextLines) {
 				pos += tl.Height;
 				if (visualTop + epsilon < pos)
@@ -748,7 +753,7 @@ namespace ICSharpCode.AvalonEdit.Rendering
 		{
 			this.VisualLine = visualLine;
 			var drawingContext = RenderOpen();
-			double pos = 0;
+			double pos = visualLine.SpaceAbove; // Daydreamer: paragraph spacing
 			foreach (TextLine textLine in visualLine.TextLines) {
 				if (flow == FlowDirection.LeftToRight) {
 				textLine.Draw(drawingContext, new Point(0, pos), InvertAxes.None);

@@ -3,8 +3,8 @@ using System.Text.RegularExpressions;
 
 namespace Daydreamer.Core.Import;
 
-/// <summary>A stretch of text with one look, as Word and HTML store it.</summary>
-public readonly record struct TextRun(string Text, bool Bold, bool Italic);
+/// <summary>A stretch of text with one look, as Word and HTML store it (font and size in points, if known).</summary>
+public readonly record struct TextRun(string Text, bool Bold, bool Italic, string? Font = null, double? Size = null);
 
 /// <summary>Joins formatted runs into one line, writing bold as **bold** and italic as *italic*.</summary>
 public static partial class RunText
@@ -56,5 +56,19 @@ public static partial class RunText
         string result = line.ToString();
         if (collapseWhitespace) result = DoubleSpaceRegex().Replace(result, " ");
         return result.Replace(' ', ' ').Trim();
+    }
+
+    /// <summary>The font and size that most of the words are in (spaces don't count).</summary>
+    public static (string? Font, double? Size) MostUsedLook(IReadOnlyCollection<TextRun> runs)
+    {
+        static int Weight(TextRun run) => run.Text.Count(c => !char.IsWhiteSpace(c));
+
+        string? font = runs.Where(r => r.Font != null && Weight(r) > 0)
+            .GroupBy(r => r.Font!)
+            .MaxBy(group => group.Sum(Weight))?.Key;
+        double? size = runs.Where(r => r.Size != null && Weight(r) > 0)
+            .GroupBy(r => r.Size!.Value)
+            .MaxBy(group => group.Sum(Weight))?.Key;
+        return (font, size);
     }
 }

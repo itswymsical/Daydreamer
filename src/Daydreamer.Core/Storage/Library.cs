@@ -143,6 +143,26 @@ public sealed class Library
     public string ReadDocument(DocumentInfo document) =>
         File.Exists(document.FilePath) ? File.ReadAllText(document.FilePath, Encoding.UTF8) : "";
 
+    // ── Fonts ───────────────────────────────────────────────────────────────
+
+    public const string FontsFolderName = "fonts";
+
+    /// <summary>Where a project keeps fonts that came with imported documents (so they work without installing them).</summary>
+    public static string FontsFolder(Project project) => Path.Combine(project.FolderPath, FontsFolderName);
+
+    /// <summary>Saves font files into the project's fonts folder. Files that are already there are kept.</summary>
+    public void SaveFonts(Project project, IEnumerable<(string FileName, byte[] Data)> fonts)
+    {
+        string folder = FontsFolder(project);
+        foreach (var (fileName, data) in fonts)
+        {
+            string path = Path.Combine(folder, SafeName(fileName, "font.ttf"));
+            if (File.Exists(path)) continue;
+            Directory.CreateDirectory(folder);
+            File.WriteAllBytes(path, data);
+        }
+    }
+
     public void WriteDocument(DocumentInfo document, string text) => WriteAtomically(document.FilePath, text);
 
     // ── Helpers ─────────────────────────────────────────────────────────────

@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Windows;
@@ -113,7 +114,6 @@ public partial class MainWindow : Window
         ApplyEditorTheme();
 
         Editor.TextChanged += Editor_TextChanged;
-        Editor.TextArea.Caret.PositionChanged += (_, _) => UpdateCaretInfo();
         Editor.TextArea.TextEntered += Editor_TextEntered;
         Editor.ContextMenu = new ContextMenu();
         Editor.ContextMenuOpening += Editor_ContextMenuOpening;
@@ -141,13 +141,20 @@ public partial class MainWindow : Window
         SaveAll();
         OpenDocument(null);
 
-        if (_project != null) _project.FormattingChanged -= Project_FormattingChanged;
+        if (_project != null)
+        {
+            _project.FormattingChanged -= Project_FormattingChanged;
+            _project.Keywords.PropertyChanged -= Keywords_PropertyChanged;
+        }
 
         _project = _library.LoadProject(Path.Combine(_library.RootPath, name));
         _project.FormattingChanged += Project_FormattingChanged;
+        _project.Keywords.PropertyChanged += Keywords_PropertyChanged;
+        ElementTypeNameConverter.Keywords = _project.Keywords;
+        LoadProjectFonts();
 
         FormattingPanel.DataContext = _project;
-        _styleEntries = StyleEntry.CreateFor(_project.Styles);
+        _styleEntries = StyleEntry.CreateFor(_project.Styles, _project.Keywords);
         StylesList.ItemsSource = _styleEntries;
         ProjectLabel.Text = _project.Name;
         ApplyFormatting();
@@ -442,6 +449,7 @@ public partial class MainWindow : Window
 
     private void Project_FormattingChanged(object? sender, EventArgs e)
     {
+        if (_addingCharacters) return;
         ApplyFormatting();
         _projectSaveTimer.Stop();
         _projectSaveTimer.Start();
@@ -449,11 +457,21 @@ public partial class MainWindow : Window
         _statsTimer.Start(); // a renamed character changes which lines are theirs
     }
 
+    /// <summary>Renamed keywords (SCENE for PANEL, say) change the names shown all over the window.</summary>
+    private void Keywords_PropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        // The heading map's lists show type names, so give them a fresh look at the new names.
+        HeadingMapGrid.DataContext = null;
+        HeadingMapGrid.DataContext = _project?.ImportHeadings;
+    }
+
     /// <summary>Re-reads the character list and styles, then redraws every visible line.</summary>
     private void ApplyFormatting()
     {
         var palette = ThemeManager.Palette;
         _parser.Registry = new CharacterRegistry(_project?.Characters ?? []);
+        _parser.Keywords = _project?.Keywords ?? new Keywords();
+        UpdateKeywordLabels();
         _colorizer.Styles = _project?.Styles;
         _colorizer.Palette = palette;
 
@@ -480,14 +498,16 @@ public partial class MainWindow : Window
         }
 
         var stats = DocumentStats.Analyze(Editor.Text, _parser);
-        StatsText.Text = $"{stats.Words:N0} words   ·   {Plural(stats.Pages, "page")}   ·   " +
-                         $"{Plural(stats.Panels, "panel")}   ·   {Plural(stats.DialogueLines, "balloon")}";
+        StatsText.Text = $"{stats.Words:N0} words   ·   {Plural(stats.Pages, NameOf(ElementType.Page).ToLower(CultureInfo.CurrentCulture))}   ·   " +
+                         $"{Plural(stats.Panels, NameOf(ElementType.Panel).ToLower(CultureInfo.CurrentCulture))}   ·   {Plural(stats.DialogueLines, "balloon")}";
 
         foreach (var character in _project.Characters)
             character.LineCount = stats.LinesByCharacter.GetValueOrDefault(character);
 
         UnknownSpeakersList.ItemsSource = stats.UnknownSpeakers;
         UnknownSpeakersPanel.Visibility = stats.UnknownSpeakers.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        AddAllSpeakersButton.Visibility = stats.UnknownSpeakers.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+        AddAllSpeakersButton.Content = $"Add all {stats.UnknownSpeakers.Count}";
     }
 
     private static string Plural(int count, string word) => count == 1 ? $"1 {word}" : $"{count:N0} {word}s";
@@ -496,26 +516,27 @@ public partial class MainWindow : Window
     private void UpdateCaretInfo()
     {
         UpdateFormatTarget();
+        UpdateAlignmentIcon();
         TypeButton.IsEnabled = _document != null;
         if (_document == null)
         {
             CaretInfo.Text = "";
-            TypeLabel.Text = "Description";
+            TypeLabel.Text = NameOf(ElementType.Action);
             return;
         }
 
         var line = Editor.Document.GetLineByOffset(Editor.CaretOffset);
         var parsed = _parser.ParseLine(Editor.Document.GetText(line));
         string modifier = string.IsNullOrEmpty(parsed.Modifier) ? "" : $" ({parsed.Modifier})";
-        TypeLabel.Text = StyleSheet.DisplayNameOf(parsed.Type == ElementType.Blank ? ElementType.Action : parsed.Type);
+        TypeLabel.Text = NameOf(parsed.Type == ElementType.Blank ? ElementType.Action : parsed.Type);
 
         string what = parsed.Type switch
         {
             ElementType.Dialogue when parsed.Character != null => $"Dialogue · {parsed.Character.Name}{modifier}",
             ElementType.Dialogue => $"Dialogue · {parsed.Speaker} (not a character yet)",
-            ElementType.Caption when parsed.Character != null => $"Caption · narrated by {parsed.Character.Name}",
+            ElementType.Caption when parsed.Character != null => $"{NameOf(ElementType.Caption)} · narrated by {parsed.Character.Name}",
             ElementType.Blank => "",
-            _ => StyleSheet.DisplayNameOf(parsed.Type),
+            _ => NameOf(parsed.Type),
         };
         CaretInfo.Text = what.Length > 0 ? $"{what}      Line {line.LineNumber}" : $"Line {line.LineNumber}";
     }
@@ -548,8 +569,28 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (Keyboard.Modifiers != ModifierKeys.Control) return;
         bool inEditor = Editor.TextArea.IsKeyboardFocusWithin;
+
+        // Ctrl+Shift+L / E / R / J align the line (or the selected lines), as in Google Docs.
+        if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && inEditor)
+        {
+            TextAlign? alignment = e.Key switch
+            {
+                Key.L => TextAlign.Left,
+                Key.E => TextAlign.Center,
+                Key.R => TextAlign.Right,
+                Key.J => TextAlign.Justify,
+                _ => null,
+            };
+            if (alignment is { } chosen)
+            {
+                AlignSelection(chosen);
+                e.Handled = true;
+            }
+            return;
+        }
+
+        if (Keyboard.Modifiers != ModifierKeys.Control) return;
 
         switch (e.Key)
         {
@@ -609,14 +650,29 @@ public partial class MainWindow : Window
     }
 
     private void InsertPage_Click(object sender, RoutedEventArgs e) =>
-        InsertLine($"PAGE {DocumentStats.NextPageNumber(LinesBeforeCaret(), _parser)}", spaced: true);
+        InsertLine($"{_parser.Keywords.Page} {DocumentStats.NextPageNumber(LinesBeforeCaret(), _parser)}", spaced: true);
 
     private void InsertPanel_Click(object sender, RoutedEventArgs e) =>
-        InsertLine($"PANEL {DocumentStats.NextPanelNumber(LinesBeforeCaret(), _parser)}", spaced: true);
+        InsertLine($"{_parser.Keywords.Panel} {DocumentStats.NextPanelNumber(LinesBeforeCaret(), _parser)}", spaced: true);
 
-    private void InsertCaption_Click(object sender, RoutedEventArgs e) => InsertLine("CAPTION: ");
-    private void InsertSfx_Click(object sender, RoutedEventArgs e) => InsertLine("SFX: ");
-    private void InsertNote_Click(object sender, RoutedEventArgs e) => InsertLine("// ");
+    // Written the way the script writes its labels: "SFX: BOOM" or "SFX BOOM".
+    private void InsertCaption_Click(object sender, RoutedEventArgs e) => InsertLine(_parser.Keywords.Caption + SpeakerSeparator());
+    private void InsertSfx_Click(object sender, RoutedEventArgs e) => InsertLine(_parser.Keywords.Sfx + SpeakerSeparator());
+
+    // A note's tag is hidden, so the note just reads as a note.
+    private void InsertNote_Click(object sender, RoutedEventArgs e) => InsertLine("{note} ");
+
+    /// <summary>The toolbar's insert buttons use the project's words ("Scene" if panels are called SCENE).</summary>
+    private void UpdateKeywordLabels()
+    {
+        InsertPageLabel.Text = NameOf(ElementType.Page);
+        InsertPanelLabel.Text = NameOf(ElementType.Panel);
+        InsertCaptionLabel.Text = NameOf(ElementType.Caption);
+        InsertSfxLabel.Text = NameOf(ElementType.Sfx);
+        InsertNoteLabel.Text = NameOf(ElementType.Note);
+        InsertPageButton.ToolTip = $"New {NameOf(ElementType.Page).ToLower(CultureInfo.CurrentCulture)} (numbered automatically)";
+        InsertPanelButton.ToolTip = $"New {NameOf(ElementType.Panel).ToLower(CultureInfo.CurrentCulture)} (numbered automatically)";
+    }
 
     private void InsertDialogue_Click(object sender, RoutedEventArgs e)
     {
@@ -708,20 +764,22 @@ public partial class MainWindow : Window
 
     private List<ScriptCompletionData> BuildCompletionItems(bool charactersOnly)
     {
+        string separator = SpeakerSeparator();
         var items = _project!.Characters
             .Where(c => c.Name.Length > 0)
             .OrderBy(c => c.Name, StringComparer.CurrentCultureIgnoreCase)
-            .Select(c => ScriptCompletionData.ForCharacter(c, ThemeManager.Palette))
+            .Select(c => ScriptCompletionData.ForCharacter(c, ThemeManager.Palette, separator))
             .ToList();
 
         if (!charactersOnly)
         {
+            var keywords = _parser.Keywords;
             var before = LinesBeforeCaret().ToList();
-            items.Add(new("PAGE", $"PAGE {DocumentStats.NextPageNumber(before, _parser)}", "Start a new page"));
-            items.Add(new("PANEL", $"PANEL {DocumentStats.NextPanelNumber(before, _parser)}", "Start a new panel"));
-            items.Add(new("CAPTION", "CAPTION: ", "Narration box"));
-            items.Add(new("SFX", "SFX: ", "Sound effect"));
-            items.Add(new("NOTE", "// ", "A note to yourself"));
+            items.Add(new(keywords.Page, $"{keywords.Page} {DocumentStats.NextPageNumber(before, _parser)}", $"Start a new {NameOf(ElementType.Page).ToLower(CultureInfo.CurrentCulture)}"));
+            items.Add(new(keywords.Panel, $"{keywords.Panel} {DocumentStats.NextPanelNumber(before, _parser)}", $"Start a new {NameOf(ElementType.Panel).ToLower(CultureInfo.CurrentCulture)}"));
+            items.Add(new(keywords.Caption, keywords.Caption + separator, "Narration box"));
+            items.Add(new(keywords.Sfx, keywords.Sfx + separator, "Sound effect"));
+            items.Add(new(keywords.Note, "{note} ", "A note to yourself"));
         }
         return items;
     }
@@ -780,7 +838,7 @@ public partial class MainWindow : Window
         }
         else if (parsed.Type != ElementType.Blank)
         {
-            var entry = _styleEntries.FirstOrDefault(s => s.Name == StyleSheet.DisplayNameOf(parsed.Type));
+            var entry = _styleEntries.FirstOrDefault(s => s.Type == parsed.Type);
             if (entry != null)
             {
                 action = new MenuItem { Header = $"Edit the {entry.Name} style" };
@@ -807,6 +865,28 @@ public partial class MainWindow : Window
 
     private void AddUnknownSpeaker_Click(object sender, RoutedEventArgs e) =>
         AddCharacter((string)((FrameworkElement)sender).Tag);
+
+    /// <summary>Adds every suggested speaker as a character in one go.</summary>
+    private void AddAllSpeakers_Click(object sender, RoutedEventArgs e)
+    {
+        if (_project == null || UnknownSpeakersList.ItemsSource is not IEnumerable<string> names) return;
+        _addingCharacters = true; // one redraw at the end, not one per name
+        try
+        {
+            foreach (string name in names.ToList())
+            {
+                if (!_project.Characters.Any(c => c.AllNames().Contains(name, StringComparer.OrdinalIgnoreCase)))
+                    _project.Characters.Add(new Character { Name = name });
+            }
+        }
+        finally
+        {
+            _addingCharacters = false;
+        }
+        Project_FormattingChanged(this, EventArgs.Empty);
+    }
+
+    private bool _addingCharacters;
 
     private void AddCharacter(string? name)
     {
@@ -842,6 +922,15 @@ public partial class MainWindow : Window
             "Remove");
         if (confirmed)
             _project.Characters.Remove(character);
+    }
+
+    /// <summary>Enter in a keyword box applies the new word straight away.</summary>
+    private void KeywordBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter || sender is not TextBox box) return;
+        box.GetBindingExpression(TextBox.TextProperty)?.UpdateSource();
+        box.SelectAll();
+        e.Handled = true;
     }
 
     private void AddModifier_Click(object sender, RoutedEventArgs e)

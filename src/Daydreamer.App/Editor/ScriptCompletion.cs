@@ -35,15 +35,18 @@ public sealed class ScriptCompletionData : ICompletionData
         textArea.Document.Replace(completionSegment, _insertText);
 
     /// <summary>A character entry: their name drawn in their own font (and name color, if they have one).</summary>
-    public static ScriptCompletionData ForCharacter(Character character, ThemePalette palette)
+    /// <param name="separator">": " for scripts that write "AKIRA: Hi", " " for ones that write "AKIRA Hi".</param>
+    public static ScriptCompletionData ForCharacter(Character character, ThemePalette palette, string separator = ": ")
     {
         var label = new TextBlock { Text = character.Name, FontWeight = FontWeights.SemiBold };
         if (character.NameColor != null)
             label.Foreground = WpfStyles.ReadableBrush(character.NameColor, palette.Paper);
         if (character.Style.FontFamily != null)
-            label.FontFamily = new FontFamily(character.Style.FontFamily);
+            label.FontFamily = WpfStyles.Family(character.Style.FontFamily, 1);
 
+        // Without a colon, a name is only recognised in capitals.
+        string name = separator == " " ? character.Name.ToUpperInvariant() : character.Name;
         string description = string.IsNullOrWhiteSpace(character.Notes) ? "Character" : character.Notes;
-        return new ScriptCompletionData(character.Name, character.Name + ": ", description, label);
+        return new ScriptCompletionData(character.Name, name + separator, description, label);
     }
 }

@@ -12,6 +12,7 @@ public sealed class HomeItem
         ProjectName = project.Name;
         Styles = project.Styles;
         Characters = project.Characters;
+        Keywords = project.Keywords;
         Preview = preview;
         Modified = document.Modified;
     }
@@ -21,6 +22,7 @@ public sealed class HomeItem
     public string ProjectName { get; }
     public StyleSheet Styles { get; }
     public IReadOnlyList<Character> Characters { get; }
+    public Keywords Keywords { get; }
 
     /// <summary>The start of the document, for the page thumbnail.</summary>
     public string Preview { get; }

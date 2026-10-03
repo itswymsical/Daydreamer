@@ -25,9 +25,12 @@ public static partial class HtmlImporter
     [GeneratedRegex(@"mso-list\s*:[^;]*level(?<level>\d+)", RegexOptions.IgnoreCase)]
     private static partial Regex WordListRegex();
 
+    [GeneratedRegex(@"^\s*(?<value>-?[\d.]+)\s*(?<unit>pt|px|in|cm|mm)?\s*$", RegexOptions.IgnoreCase)]
+    private static partial Regex LengthRegex();
+
     private enum Source { Web, GoogleDocs, Word }
 
-    private sealed record Format(string Tag, bool Bold, bool Italic, bool Hidden, bool ListGlyph);
+    private sealed record Format(string Tag, bool Bold, bool Italic, bool Hidden, bool ListGlyph, string? Font = null, double? Size = null);
 
     private static readonly Format Plain = new("", false, false, false, false);
 
@@ -100,7 +103,9 @@ public static partial class HtmlImporter
         bool listGlyph = style.Contains("mso-list:ignore", StringComparison.OrdinalIgnoreCase)
                          || style.Contains("mso-list: ignore", StringComparison.OrdinalIgnoreCase);
         bool hidden = parent.Hidden || HiddenTags.Contains(tag) || listGlyph;
-        formats.Add(new Format(tag, bold, italic, hidden, listGlyph || parent.ListGlyph));
+        string? font = FontFamilyIn(style) ?? parent.Font;
+        double? size = LengthIn(style, "font-size") ?? parent.Size;
+        formats.Add(new Format(tag, bold, italic, hidden, listGlyph || parent.ListGlyph, font, size));
     }
 
     private static void StartBlock(string tag, Dictionary<string, string> attributes, string style,
@@ -132,7 +137,8 @@ public static partial class HtmlImporter
             level = Math.Max(0, int.Parse(wordList.Groups["level"].Value, CultureInfo.InvariantCulture) - 1);
         }
 
-        builder.StartParagraph(new ImportedParagraph("", heading, list, level, isChecked, LineSpacing(style, source)), fromListTag: tag == "li");
+        builder.StartParagraph(new ImportedParagraph("", heading, list, level, isChecked, LineSpacing(style, source),
+            Alignment: AlignmentIn(style, attributes), ParagraphSpacing: ParagraphSpacingIn(style)), fromListTag: tag == "li");
     }
 
     private static void Close(string tag, List<Format> formats, Stack<ListKind> lists, Builder builder)
@@ -159,6 +165,72 @@ public static partial class HtmlImporter
             _ => null, // points/pixels depend on the font size; not worth guessing
         };
         return spacing is >= 0.5 and <= 4 ? Math.Round(spacing.Value, 2) : null;
+    }
+
+    /// <summary>"text-align: center", or the older align="center" attribute.</summary>
+    private static TextAlign? AlignmentIn(string style, Dictionary<string, string> attributes)
+    {
+        string value = StyleValue(style, "text-align") ?? attributes.GetValueOrDefault("align", "");
+        return value.ToLowerInvariant() switch
+        {
+            "left" or "start" => TextAlign.Left,
+            "center" or "middle" => TextAlign.Center,
+            "right" or "end" => TextAlign.Right,
+            "justify" => TextAlign.Justify,
+            _ => null,
+        };
+    }
+
+    /// <summary>The space above and below a paragraph (margin-top + margin-bottom), in points.</summary>
+    private static double? ParagraphSpacingIn(string style)
+    {
+        double? top = LengthIn(style, "margin-top"), bottom = LengthIn(style, "margin-bottom");
+        return top == null && bottom == null ? null : Math.Max(0, (top ?? 0) + (bottom ?? 0));
+    }
+
+    /// <summary>The first font in "font-family: 'Zen Kaku Gothic New', sans-serif" (catch-alls like sans-serif don't count).</summary>
+    private static string? FontFamilyIn(string style)
+    {
+        string? value = StyleValue(style, "font-family");
+        if (value == null) return null;
+        string first = value.Split(',')[0].Trim().Trim('\'', '"').Trim();
+        return first.Length == 0 || GenericFonts.Contains(first) ? null : first;
+    }
+
+    private static readonly HashSet<string> GenericFonts = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "serif", "sans-serif", "monospace", "cursive", "fantasy", "system-ui", "inherit", "initial",
+    };
+
+    /// <summary>A length such as "12pt", "16px", "0.5in" or "1cm", in points. Relative sizes (em, %) give null.</summary>
+    private static double? LengthIn(string style, string property)
+    {
+        var match = LengthRegex().Match(StyleValue(style, property) ?? "");
+        if (!match.Success || !double.TryParse(match.Groups["value"].Value, NumberStyles.Float, CultureInfo.InvariantCulture, out double value))
+            return null;
+        double? points = match.Groups["unit"].Value.ToLowerInvariant() switch
+        {
+            "pt" => value,
+            "px" => value * 0.75,
+            "in" => value * 72,
+            "cm" => value * 72 / 2.54,
+            "mm" => value * 72 / 25.4,
+            "" when value == 0 => 0,
+            _ => null,
+        };
+        return points is { } p ? Math.Round(p, 2) : null; // 14.6667px is 11pt, not 11.000025pt
+    }
+
+    /// <summary>The value of one CSS property in a style attribute, e.g. "center" for text-align.</summary>
+    private static string? StyleValue(string style, string property)
+    {
+        foreach (string declaration in style.Split(';'))
+        {
+            int colon = declaration.IndexOf(':');
+            if (colon >= 0 && declaration[..colon].Trim().Equals(property, StringComparison.OrdinalIgnoreCase))
+                return declaration[(colon + 1)..].Trim();
+        }
+        return null;
     }
 
     private static bool StyleFlag(string style, string property, bool inherited, Func<string, bool> isOn, Func<string, bool> isOff)
@@ -233,7 +305,7 @@ public static partial class HtmlImporter
                 if (string.IsNullOrWhiteSpace(text)) return; // spacing between tags, not content
                 _paragraph = new ImportedParagraph("");
             }
-            _runs.Add(new TextRun(text, format.Bold, format.Italic));
+            _runs.Add(new TextRun(text, format.Bold, format.Italic, format.Font, format.Size));
         }
 
         /// <summary>A &lt;br&gt;: ends the current line, or between paragraphs, makes an empty one.</summary>
@@ -260,7 +332,10 @@ public static partial class HtmlImporter
                 paragraph = paragraph with { List = ListKind.Numbered };
 
             if (text.Length > 0 || paragraph is { Heading: null })
-                Document.Paragraphs.Add(paragraph with { Text = text });
+            {
+                var (font, size) = RunText.MostUsedLook(_runs);
+                Document.Paragraphs.Add(paragraph with { Text = text, FontFamily = font, FontSize = size });
+            }
 
             _runs.Clear();
             _listGlyph = "";
