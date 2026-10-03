@@ -21,6 +21,7 @@ public static class WpfStyles
 
     public static readonly TextDecorationCollection NoDecorations = Freeze(new TextDecorationCollection());
     public static readonly TextDecorationCollection Underline = TextDecorations.Underline;
+    public static readonly TextDecorationCollection Strikethrough = TextDecorations.Strikethrough;
 
     /// <summary>Word processors measure fonts in points (1/72 inch); WPF uses 1/96 inch.</summary>
     public static double PointsToPixels(double points) => points * 96.0 / 72.0;

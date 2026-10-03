@@ -1,8 +1,10 @@
 <UserControl x:Class="Daydreamer.App.Controls.StyleEditor"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:controls="clr-namespace:Daydreamer.App.Controls">
+             xmlns:controls="clr-namespace:Daydreamer.App.Controls"
+             xmlns:app="clr-namespace:Daydreamer.App">
     <UserControl.Resources>
+        <app:AlignmentChoiceConverter x:Key="AlignmentChoice" />
         <!-- Our three-state check box should look like every other (Windows 11) check box. -->
         <Style TargetType="controls:InheritCheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
             <Setter Property="MinWidth" Value="0" />
@@ -44,6 +46,10 @@
                           Text="{Binding LineSpacing, TargetNullValue='', UpdateSourceTrigger=PropertyChanged, Delay=400}" />
             </StackPanel>
         </Grid>
+
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Alignment" />
+        <ComboBox ItemsSource="{x:Static app:AlignmentChoiceConverter.Choices}"
+                  SelectedItem="{Binding Alignment, Converter={StaticResource AlignmentChoice}}" />
 
         <TextBlock Style="{StaticResource FieldLabel}" Text="Emphasis" />
         <WrapPanel>

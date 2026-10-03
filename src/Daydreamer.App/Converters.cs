@@ -61,6 +61,38 @@ public sealed class InverseBoolConverter : IValueConverter
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => value is not true;
 }
 
+/// <summary>An alignment → its toolbar icon (the IconAlign… geometries in Themes/Daydreamer.xaml).</summary>
+public sealed class AlignmentIconConverter : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        Application.Current.TryFindResource("IconAlign" + (value as Daydreamer.Core.Models.TextAlign? ?? Daydreamer.Core.Models.TextAlign.Left));
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
+/// <summary>Alignment ⇄ the words in the side panel's alignment box ("Default" means inherit).</summary>
+public sealed class AlignmentChoiceConverter : IValueConverter
+{
+    public static IReadOnlyList<string> Choices { get; } = ["Default", "Left", "Center", "Right", "Justify"];
+
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is Daydreamer.Core.Models.TextAlign alignment ? alignment.ToString() : "Default";
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        Enum.TryParse<Daydreamer.Core.Models.TextAlign>(value as string, out var alignment) ? alignment : null;
+}
+
+/// <summary>An element type → the name people see ("Description", "SFX", "List item").</summary>
+public sealed class ElementTypeNameConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is Daydreamer.Core.Models.ElementType type ? Daydreamer.Core.Models.StyleSheet.DisplayNameOf(type) : "";
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
 /// <summary>A count → "12 lines" / "1 line".</summary>
 public sealed class LineCountConverter : IValueConverter
 {

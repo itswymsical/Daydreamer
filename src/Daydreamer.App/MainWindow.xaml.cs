@@ -66,6 +66,7 @@ public partial class MainWindow : Window
 
         _colorizer = new ScriptColorizer(_parser);
         SetUpEditor();
+        SetUpWritingTools();
         SetUpShell();
         FormatControls.DataContext = _formatTarget;
 
@@ -488,15 +489,18 @@ public partial class MainWindow : Window
     private void UpdateCaretInfo()
     {
         UpdateFormatTarget();
+        TypeButton.IsEnabled = _document != null;
         if (_document == null)
         {
             CaretInfo.Text = "";
+            TypeLabel.Text = "Description";
             return;
         }
 
         var line = Editor.Document.GetLineByOffset(Editor.CaretOffset);
         var parsed = _parser.ParseLine(Editor.Document.GetText(line));
         string modifier = string.IsNullOrEmpty(parsed.Modifier) ? "" : $" ({parsed.Modifier})";
+        TypeLabel.Text = StyleSheet.DisplayNameOf(parsed.Type == ElementType.Blank ? ElementType.Action : parsed.Type);
 
         string what = parsed.Type switch
         {

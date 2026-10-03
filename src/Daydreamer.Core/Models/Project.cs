@@ -13,11 +13,13 @@ public sealed class Project : ObservableObject
 {
     private ObservableCollection<Character> _characters = [];
     private StyleSheet _styles = StyleSheet.CreateDefault();
+    private HeadingMap _importHeadings = new();
 
     public Project()
     {
         _characters.CollectionChanged += OnCharactersChanged;
         _styles.PropertyChanged += OnStylesChanged;
+        _importHeadings.PropertyChanged += OnStylesChanged;
     }
 
     /// <summary>The project.json format this code writes. See <c>ProjectUpgrades</c> for what changed.</summary>
@@ -49,6 +51,19 @@ public sealed class Project : ObservableObject
             _styles.PropertyChanged -= OnStylesChanged;
             _styles = value ?? StyleSheet.CreateDefault();
             _styles.PropertyChanged += OnStylesChanged;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>What Google Docs / Word headings become when importing or pasting.</summary>
+    public HeadingMap ImportHeadings
+    {
+        get => _importHeadings;
+        set
+        {
+            _importHeadings.PropertyChanged -= OnStylesChanged;
+            _importHeadings = value ?? new HeadingMap();
+            _importHeadings.PropertyChanged += OnStylesChanged;
             OnPropertyChanged();
         }
     }

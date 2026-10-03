@@ -152,10 +152,10 @@ public partial class MainWindow
         UpdateMaximizeVisual();
     }
 
-    /// <summary>On narrow windows the Insert buttons drop their labels and keep just their icons.</summary>
+    /// <summary>The Insert buttons show their labels only on very wide windows; otherwise just icons (with tooltips).</summary>
     private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
     {
-        var visibility = ActualWidth < 1280 ? Visibility.Collapsed : Visibility.Visible;
+        var visibility = ActualWidth < 1760 ? Visibility.Collapsed : Visibility.Visible;
         if (!Equals(Resources["ToolbarLabelVisibility"], visibility))
             Resources["ToolbarLabelVisibility"] = visibility;
     }

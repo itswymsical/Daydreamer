@@ -11,10 +11,14 @@ namespace Daydreamer.Core.Parsing;
 /// <code>
 ///   (empty)                      → Blank
 ///   // anything                  → Note
+///   !anything                    → Action (forced: "read this as a description, whatever it looks like")
 ///   # Chapter 1                  → Heading
 ///   PAGE 1 / Page 2 / PAGES 4-5  → Page
 ///   PANEL 1 / Panel 2            → Panel
 ///   CAPTION: / SFX: / FX: / NOTE:→ Caption / Sfx / Note
+///   [ ] task / [x] done          → ListItem (checklist)
+///   1. item                      → ListItem (numbered)
+///   - item / * item / • item     → ListItem (bulleted)
 ///   AKIRA: ... / AKIRA (x): ...  → Dialogue  (if AKIRA is a defined character,
 ///                                             or written in ALL CAPS)
 ///   anything else                → Action
@@ -35,6 +39,18 @@ public sealed partial class ScriptParser
 
     [GeneratedRegex(@"^\s*(?<kw>CAPTION|SFX|FX|NOTE)\s*(?<modfull>\((?<mod>[^)]*)\))?\s*:\s*(?<body>.*)$", RegexOptions.IgnoreCase)]
     private static partial Regex KeywordRegex();
+
+    // "[ ] task", "[x] done", and the GitHub-style "- [ ] task".
+    [GeneratedRegex(@"^\s*(?:[-*]\s+)?(?<marker>\[(?<check>[ xX])\])(?:\s+|$)(?<body>.*)$")]
+    private static partial Regex ChecklistRegex();
+
+    // "1. item" or "1) item" — the space after the dot matters, so "1.5 hours" stays prose.
+    [GeneratedRegex(@"^\s*(?<marker>\d{1,3}[.)])\s+(?<body>.*)$")]
+    private static partial Regex NumberedRegex();
+
+    // "- item", "* item", "• item" — again a space must follow, so "*italic*" isn't a bullet.
+    [GeneratedRegex(@"^\s*(?<marker>[-*•])\s+(?<body>.*)$")]
+    private static partial Regex BulletRegex();
 
     // A speaker cue: a short name, an optional (modifier), then a colon.
     [GeneratedRegex(@"^\s*(?<name>[\p{L}\p{N}][\p{L}\p{N}\p{M} .'’\-]{0,40}?)\s*(?<modfull>\((?<mod>[^)]*)\))?\s*:\s*(?<body>.*)$")]
@@ -59,10 +75,25 @@ public sealed partial class ScriptParser
             return new ScriptLine { Type = ElementType.Blank };
 
         int contentStart = text.Length - text.TrimStart().Length;
+        int indent = IndentLevelOf(text, contentStart);
         var wholeLine = new TextRange(contentStart, trimmed.Length);
 
         if (trimmed.StartsWith("//"))
-            return new ScriptLine { Type = ElementType.Note, Body = wholeLine };
+            return new ScriptLine { Type = ElementType.Note, Body = wholeLine, IndentLevel = indent };
+
+        if (trimmed.StartsWith('!'))
+        {
+            int bodyStart = contentStart + 1;
+            var body = new TextRange(bodyStart, text.TrimEnd().Length - bodyStart);
+            return new ScriptLine
+            {
+                Type = ElementType.Action,
+                Label = new TextRange(contentStart, 1),
+                Body = body,
+                Inlines = ParseInlines(text, body),
+                IndentLevel = indent,
+            };
+        }
 
         var heading = HeadingRegex().Match(text);
         if (heading.Success)
@@ -74,18 +105,23 @@ public sealed partial class ScriptParser
                 Label = RangeOf(heading.Groups[1]),
                 Body = body,
                 Inlines = ParseInlines(text, body),
+                IndentLevel = indent,
             };
         }
 
         if (PageRegex().IsMatch(text))
-            return new ScriptLine { Type = ElementType.Page, Body = wholeLine };
+            return new ScriptLine { Type = ElementType.Page, Body = wholeLine, IndentLevel = indent };
 
         if (PanelRegex().IsMatch(text))
-            return new ScriptLine { Type = ElementType.Panel, Body = wholeLine };
+            return new ScriptLine { Type = ElementType.Panel, Body = wholeLine, IndentLevel = indent };
 
         var keyword = KeywordRegex().Match(text);
         if (keyword.Success)
-            return BuildKeywordLine(text, keyword);
+            return BuildKeywordLine(text, keyword, indent);
+
+        var list = MatchList(text);
+        if (list != null)
+            return BuildListLine(text, list.Value.Match, list.Value.Kind, indent);
 
         var cue = CueRegex().Match(text);
         if (cue.Success)
@@ -93,10 +129,10 @@ public sealed partial class ScriptParser
             string name = cue.Groups["name"].Value.Trim();
             var character = Registry.Find(name);
             if (character != null || LooksLikeSpeakerName(name))
-                return BuildLabelledLine(text, cue, ElementType.Dialogue, name, character);
+                return BuildLabelledLine(text, cue, ElementType.Dialogue, name, character, indent);
         }
 
-        return new ScriptLine { Type = ElementType.Action, Body = wholeLine, Inlines = ParseInlines(text, wholeLine) };
+        return new ScriptLine { Type = ElementType.Action, Body = wholeLine, Inlines = ParseInlines(text, wholeLine), IndentLevel = indent };
     }
 
     /// <summary>Parses a whole document, one entry per line.</summary>
@@ -109,7 +145,45 @@ public sealed partial class ScriptParser
     public static IEnumerable<string> SplitLines(string text) =>
         text.Split('\n').Select(l => l.TrimEnd('\r'));
 
-    private ScriptLine BuildKeywordLine(string text, Match match)
+    /// <summary>One level per tab, or per four spaces, before the first visible character.</summary>
+    public static int IndentLevelOf(string text, int contentStart)
+    {
+        int tabs = 0, spaces = 0;
+        for (int i = 0; i < contentStart; i++)
+        {
+            if (text[i] == '\t') tabs++;
+            else spaces++;
+        }
+        return tabs + spaces / 4;
+    }
+
+    private static (Match Match, ListKind Kind)? MatchList(string text)
+    {
+        var check = ChecklistRegex().Match(text);
+        if (check.Success) return (check, ListKind.Checkbox);
+        var number = NumberedRegex().Match(text);
+        if (number.Success) return (number, ListKind.Numbered);
+        var bullet = BulletRegex().Match(text);
+        if (bullet.Success) return (bullet, ListKind.Bullet);
+        return null;
+    }
+
+    private static ScriptLine BuildListLine(string text, Match match, ListKind kind, int indent)
+    {
+        var body = RangeOf(match.Groups["body"]);
+        return new ScriptLine
+        {
+            Type = ElementType.ListItem,
+            List = kind,
+            ListMarker = RangeOf(match.Groups["marker"]),
+            IsChecked = kind == ListKind.Checkbox && match.Groups["check"].Value is "x" or "X",
+            Body = body,
+            Inlines = ParseInlines(text, body),
+            IndentLevel = indent,
+        };
+    }
+
+    private ScriptLine BuildKeywordLine(string text, Match match, int indent)
     {
         var type = match.Groups["kw"].Value.ToUpperInvariant() switch
         {
@@ -124,10 +198,10 @@ public sealed partial class ScriptParser
         if (type == ElementType.Caption && modifier.Length > 0)
             narrator = Registry.Find(modifier);
 
-        return BuildLabelledLine(text, match, type, speaker: narrator?.Name, narrator);
+        return BuildLabelledLine(text, match, type, speaker: narrator?.Name, narrator, indent);
     }
 
-    private static ScriptLine BuildLabelledLine(string text, Match match, ElementType type, string? speaker, Character? character)
+    private static ScriptLine BuildLabelledLine(string text, Match match, ElementType type, string? speaker, Character? character, int indent)
     {
         var body = RangeOf(match.Groups["body"]);
         int labelStart = text.Length - text.TrimStart().Length;
@@ -146,6 +220,7 @@ public sealed partial class ScriptParser
             ModifierRange = match.Groups["modfull"].Success ? RangeOf(match.Groups["modfull"]) : TextRange.Empty,
             Body = body,
             Inlines = ParseInlines(text, body),
+            IndentLevel = indent,
         };
     }
 

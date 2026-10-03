@@ -18,6 +18,9 @@ public enum ElementType
     /// <summary>Anything that isn't a special line: panel descriptions, prose, stage directions.</summary>
     Action,
 
+    /// <summary><c>- item</c>, <c>1. item</c> or <c>[ ] task</c> — bulleted, numbered and checklist lines.</summary>
+    ListItem,
+
     /// <summary><c>AKIRA: I can't believe it's over.</c></summary>
     Dialogue,
 

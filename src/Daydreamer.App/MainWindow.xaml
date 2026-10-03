@@ -5,6 +5,7 @@
         xmlns:app="clr-namespace:Daydreamer.App"
         xmlns:ambient="clr-namespace:Daydreamer.App.Ambient"
         xmlns:controls="clr-namespace:Daydreamer.App.Controls"
+        xmlns:models="clr-namespace:Daydreamer.Core.Models;assembly=Daydreamer.Core"
         Title="Daydreamer" Width="1440" Height="900" MinWidth="960" MinHeight="580"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource ChromeBrush}" Foreground="{DynamicResource TextBrush}"
@@ -22,6 +23,8 @@
         <app:FontNameConverter x:Key="FontName" />
         <app:NullToCollapsedConverter x:Key="NullToCollapsed" />
         <app:InverseBoolConverter x:Key="InverseBool" />
+        <app:AlignmentIconConverter x:Key="AlignmentIcon" />
+        <app:ElementTypeNameConverter x:Key="ElementTypeName" />
         <app:LineCountConverter x:Key="LineCount" />
         <app:EditedDateConverter x:Key="EditedDate" />
 
@@ -112,8 +115,9 @@
             </Grid>
 
             <!-- ═══════════════ Toolbar ═══════════════ -->
-            <Border DockPanel.Dock="Top" Margin="12,0,12,10" Padding="8,3" Background="{DynamicResource ToolbarBrush}" CornerRadius="22">
-                <StackPanel Orientation="Horizontal">
+            <!-- A WrapPanel, so on a narrow window the toolbar flows onto a second row instead of being cut off. -->
+            <Border DockPanel.Dock="Top" Margin="12,0,12,10" Padding="8,3" Background="{DynamicResource ToolbarBrush}" CornerRadius="18">
+                <WrapPanel>
                     <Button Style="{StaticResource FlatButton}" Click="Undo_Click" ToolTip="Undo (Ctrl+Z)">
                         <TextBlock Style="{StaticResource Icon}" Text="&#xE7A7;" />
                     </Button>
@@ -122,7 +126,16 @@
                     </Button>
                     <Border Style="{StaticResource ToolbarDivider}" />
 
-                    <!-- Font, size and color for the kind of line the cursor is on (DataContext: FormatTarget). -->
+                    <!-- What kind of line this is; pick another to change it (like Google Docs' "Normal text ▾"). -->
+                    <Button x:Name="TypeButton" Style="{StaticResource FlatButton}" Click="TypeButton_Click" Margin="0,0,4,0"
+                            ToolTip="What kind of line this is. Pick another kind to change the selected lines.">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="TypeLabel" Text="Description" MinWidth="78" />
+                            <TextBlock Style="{StaticResource Icon}" Text="&#xE70D;" FontSize="9" Margin="6,1,0,0" />
+                        </StackPanel>
+                    </Button>
+
+                    <!-- Font, size, color, spacing and alignment for the kind of line the cursor is on (DataContext: FormatTarget). -->
                     <StackPanel x:Name="FormatControls" Orientation="Horizontal">
                         <Button x:Name="FormatChip" Style="{StaticResource ChipButton}" Click="FormatChip_Click"
                                 ToolTip="{Binding ToolTip}" IsEnabled="{Binding IsEnabled}">
@@ -181,21 +194,41 @@
                             </Popup>
                         </Grid>
 
-                        <!-- Line spacing: arrows between lines, drawn with a Path so it looks the same everywhere. -->
                         <Button x:Name="LineSpacingButton" Style="{StaticResource FlatButton}" Margin="2,0,0,0"
                                 ToolTip="Line spacing" IsEnabled="{Binding IsEnabled}" Click="LineSpacingButton_Click">
-                            <Path Width="16" Height="16" StrokeThickness="1.3" StrokeLineJoin="Round"
-                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round" Stroke="{DynamicResource TextBrush}"
-                                  Data="M3.5,2.5 L3.5,13.5 M1.5,4.5 L3.5,2.5 L5.5,4.5 M1.5,11.5 L3.5,13.5 L5.5,11.5 M8,3.5 L15,3.5 M8,8 L15,8 M8,12.5 L15,12.5" />
+                            <Path Style="{StaticResource IconPath}" Data="{StaticResource IconLineSpacing}" />
+                        </Button>
+                        <Button x:Name="AlignButton" Style="{StaticResource FlatButton}" Margin="2,0,0,0"
+                                ToolTip="Alignment" IsEnabled="{Binding IsEnabled}" Click="AlignButton_Click">
+                            <Path Style="{StaticResource IconPath}" Data="{Binding Alignment, Converter={StaticResource AlignmentIcon}}" />
                         </Button>
                     </StackPanel>
 
+                    <!-- These edit the text itself: emphasis, lists, indents. -->
                     <Border Style="{StaticResource ToolbarDivider}" />
                     <Button Style="{StaticResource FlatButton}" Click="Bold_Click" ToolTip="Bold (Ctrl+B) — wraps the selection in **stars**">
                         <TextBlock Style="{StaticResource Icon}" Text="&#xE8DD;" />
                     </Button>
                     <Button Style="{StaticResource FlatButton}" Click="Italic_Click" ToolTip="Italic (Ctrl+I) — wraps the selection in *stars*">
                         <TextBlock Style="{StaticResource Icon}" Text="&#xE8DB;" />
+                    </Button>
+                    <Button Style="{StaticResource FlatButton}" Click="BulletList_Click" ToolTip="Bulleted list (lines starting with - )">
+                        <Path Style="{StaticResource IconPath}" Data="{StaticResource IconBulletList}" />
+                    </Button>
+                    <Button Style="{StaticResource FlatButton}" Click="NumberedList_Click" ToolTip="Numbered list (1. 2. 3.)">
+                        <Path Style="{StaticResource IconPath}" Data="{StaticResource IconNumberList}" />
+                    </Button>
+                    <Button Style="{StaticResource FlatButton}" Click="Checklist_Click" ToolTip="Checklist ([ ] and [x] — click a box to tick it)">
+                        <Path Style="{StaticResource IconPath}" Data="{StaticResource IconChecklist}" />
+                    </Button>
+                    <Button Style="{StaticResource FlatButton}" Click="Outdent_Click" ToolTip="Decrease indent (Shift+Tab on a list item)">
+                        <Path Style="{StaticResource IconPath}" Data="{StaticResource IconOutdent}" />
+                    </Button>
+                    <Button Style="{StaticResource FlatButton}" Click="Indent_Click" ToolTip="Increase indent (Tab on a list item)">
+                        <Path Style="{StaticResource IconPath}" Data="{StaticResource IconIndent}" />
+                    </Button>
+                    <Button Style="{StaticResource FlatButton}" Click="ClearFormatting_Click" ToolTip="Clear formatting — removes bold and italic from the selected text">
+                        <Path Style="{StaticResource IconPath}" Data="{StaticResource IconClearFormatting}" />
                     </Button>
                     <Border Style="{StaticResource ToolbarDivider}" />
 
@@ -241,7 +274,7 @@
                     <Button Style="{StaticResource FlatButton}" Click="Find_Click" ToolTip="Find (Ctrl+F)">
                         <TextBlock Style="{StaticResource Icon}" Text="&#xE721;" />
                     </Button>
-                </StackPanel>
+                </WrapPanel>
             </Border>
 
             <!-- ═══════════════ Status bar ═══════════════ -->
@@ -293,6 +326,10 @@
                         <Button DockPanel.Dock="Right" Style="{StaticResource FlatButton}" Click="NewDocument_Click" ToolTip="New document (Ctrl+N)" MinHeight="26" Padding="6,3">
                             <TextBlock Style="{StaticResource Icon}" Text="&#xE710;" FontSize="12" />
                         </Button>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource FlatButton}" Click="Import_Click" MinHeight="26" Padding="6,3"
+                                ToolTip="Import a Word or Google Docs file (.docx), or a text file">
+                            <Path Style="{StaticResource IconPath}" Data="{StaticResource IconImport}" Width="14" Height="14" Stretch="Uniform" />
+                        </Button>
                         <TextBlock Style="{StaticResource SectionHeader}" Text="DOCUMENTS" Margin="0" VerticalAlignment="Center" />
                     </DockPanel>
 
@@ -337,6 +374,19 @@
                         <avalon:TextEditor x:Name="Editor" Background="Transparent" WordWrap="True" ShowLineNumbers="False"
                                            HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"
                                            FontFamily="Segoe UI" FontSize="16" />
+
+                        <!-- A suggestion that floats over the top of the page, e.g. "use this line spacing?". -->
+                        <Border x:Name="InfoBar" Style="{StaticResource PopupCard}" VerticalAlignment="Top" HorizontalAlignment="Center"
+                                Margin="0,30,0,0" Padding="14,8,8,8" MaxWidth="560" Visibility="Collapsed">
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Style="{StaticResource FlatButton}" Click="InfoBarClose_Click" ToolTip="Dismiss" Padding="6,4">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE711;" FontSize="10" />
+                                </Button>
+                                <Button x:Name="InfoBarAction" DockPanel.Dock="Right" Style="{StaticResource AccentButton}" Margin="10,0,4,0"
+                                        Padding="12,4" Click="InfoBarAction_Click" />
+                                <TextBlock x:Name="InfoBarText" TextWrapping="Wrap" VerticalAlignment="Center" FontSize="13" />
+                            </DockPanel>
+                        </Border>
 
                         <StackPanel x:Name="EmptyState" VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="Collapsed">
                             <TextBlock Style="{StaticResource Icon}" Text="&#xE8A5;" FontSize="40" HorizontalAlignment="Center"
@@ -552,6 +602,56 @@
                                             </StackPanel>
                                         </Button>
                                     </StackPanel>
+
+                                    <!-- What headings from Google Docs / Word become -->
+                                    <Border Height="1" Background="{DynamicResource DividerBrush}" Margin="6,20,6,12" />
+                                    <TextBlock Style="{StaticResource SectionHeader}" Text="IMPORTING &amp; PASTING" Margin="6,0,6,0" />
+                                    <TextBlock Style="{StaticResource Hint}" Margin="6,4,6,8"
+                                               Text="What headings become when you paste from Google Docs or Word, or import a .docx file." />
+                                    <Grid Margin="6,0,6,0" DataContext="{Binding ImportHeadings}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="96" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+                                        <Grid.Resources>
+                                            <Style TargetType="TextBlock" x:Key="MapLabel">
+                                                <Setter Property="VerticalAlignment" Value="Center" />
+                                                <Setter Property="FontSize" Value="12.5" />
+                                                <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+                                            </Style>
+                                            <DataTemplate x:Key="TypeName">
+                                                <TextBlock Text="{Binding Converter={StaticResource ElementTypeName}}" />
+                                            </DataTemplate>
+                                            <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                                                <Setter Property="Margin" Value="0,2" />
+                                                <Setter Property="ItemsSource" Value="{x:Static models:HeadingMap.Choices}" />
+                                                <Setter Property="ItemTemplate" Value="{StaticResource TypeName}" />
+                                            </Style>
+                                        </Grid.Resources>
+                                        <TextBlock Grid.Row="0" Style="{StaticResource MapLabel}" Text="Title" />
+                                        <ComboBox Grid.Row="0" Grid.Column="1" SelectedItem="{Binding Title}" />
+                                        <TextBlock Grid.Row="1" Style="{StaticResource MapLabel}" Text="Heading 1" />
+                                        <ComboBox Grid.Row="1" Grid.Column="1" SelectedItem="{Binding Heading1}" />
+                                        <TextBlock Grid.Row="2" Style="{StaticResource MapLabel}" Text="Heading 2" />
+                                        <ComboBox Grid.Row="2" Grid.Column="1" SelectedItem="{Binding Heading2}" />
+                                        <TextBlock Grid.Row="3" Style="{StaticResource MapLabel}" Text="Heading 3" />
+                                        <ComboBox Grid.Row="3" Grid.Column="1" SelectedItem="{Binding Heading3}" />
+                                        <TextBlock Grid.Row="4" Style="{StaticResource MapLabel}" Text="Heading 4" />
+                                        <ComboBox Grid.Row="4" Grid.Column="1" SelectedItem="{Binding Heading4}" />
+                                        <TextBlock Grid.Row="5" Style="{StaticResource MapLabel}" Text="Heading 5" />
+                                        <ComboBox Grid.Row="5" Grid.Column="1" SelectedItem="{Binding Heading5}" />
+                                        <TextBlock Grid.Row="6" Style="{StaticResource MapLabel}" Text="Heading 6" />
+                                        <ComboBox Grid.Row="6" Grid.Column="1" SelectedItem="{Binding Heading6}" />
+                                    </Grid>
                                 </StackPanel>
                             </ScrollViewer>
                         </TabItem>
@@ -581,6 +681,10 @@
                                     <TextBlock Style="{StaticResource Hint}" Text="Not part of the script and not counted. NOTE: works too." />
                                     <TextBlock Style="{StaticResource GuideKey}" Text="**bold**   *italic*" />
                                     <TextBlock Style="{StaticResource Hint}" Text="Emphasis inside any line." />
+                                    <TextBlock Style="{StaticResource GuideKey}" Text="- item    1. item    [ ] task" />
+                                    <TextBlock Style="{StaticResource Hint}" Text="Bulleted, numbered and checklist lines. Enter continues a list; Tab and Shift+Tab nest it." />
+                                    <TextBlock Style="{StaticResource GuideKey}" Text="!INT. STATION: night" />
+                                    <TextBlock Style="{StaticResource Hint}" Text="A ! at the start forces a line to read as a description, whatever it looks like. The line type menu adds it for you." />
                                     <TextBlock Style="{StaticResource GuideKey}" Text="Anything else" />
                                     <TextBlock Style="{StaticResource Hint}" Text="Panel descriptions and prose." />
 

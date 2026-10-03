@@ -14,6 +14,7 @@ public sealed class TextStyle : ObservableObject
     private bool? _underline;
     private string? _color;
     private double? _lineSpacing;
+    private TextAlign? _alignment;
 
     public string? FontFamily
     {
@@ -51,6 +52,9 @@ public sealed class TextStyle : ObservableObject
         set => SetField(ref _lineSpacing, value is >= 0.5 and <= 4 ? Math.Round(value.Value, 2) : null);
     }
 
+    /// <summary>Left, center, right or justified. Null means inherit (and in the end, left).</summary>
+    public TextAlign? Alignment { get => _alignment; set => SetField(ref _alignment, value); }
+
     public TextStyle Clone() => new()
     {
         FontFamily = FontFamily,
@@ -60,5 +64,6 @@ public sealed class TextStyle : ObservableObject
         Underline = Underline,
         Color = Color,
         LineSpacing = LineSpacing,
+        Alignment = Alignment,
     };
 }

@@ -161,6 +161,7 @@ public sealed class StyleSheet : ObservableObject
         Add(ElementType.Page, new TextStyle { FontSize = 14, Bold = true });
         Add(ElementType.Panel, new TextStyle { Bold = true });
         Add(ElementType.Action, new TextStyle());
+        Add(ElementType.ListItem, new TextStyle());
         Add(ElementType.Dialogue, new TextStyle());
         Add(ElementType.Caption, new TextStyle { Bold = true });
         Add(ElementType.Sfx, new TextStyle { Italic = true });
@@ -176,6 +177,7 @@ public sealed class StyleSheet : ObservableObject
     {
         ElementType.Sfx => "SFX",
         ElementType.Action => "Description",
+        ElementType.ListItem => "List item",
         _ => type.ToString(),
     };
 
@@ -185,6 +187,7 @@ public sealed class StyleSheet : ObservableObject
         ElementType.Page => "PAGE 1",
         ElementType.Panel => "PANEL 1",
         ElementType.Action => "A quiet street at dusk.",
+        ElementType.ListItem => "- A list item",
         ElementType.Dialogue => "NAME: Hello!",
         ElementType.Caption => "CAPTION: Tokyo, 2045.",
         ElementType.Sfx => "SFX: KRAKOOM",

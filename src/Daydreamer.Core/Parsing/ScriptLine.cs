@@ -53,6 +53,21 @@ public sealed class ScriptLine
 
     public IReadOnlyList<InlineSpan> Inlines { get; init; } = [];
 
+    /// <summary>For list lines: bulleted, numbered or checklist.</summary>
+    public ListKind List { get; init; }
+
+    /// <summary>The list marker itself: <c>-</c>, <c>1.</c> or <c>[ ]</c>.</summary>
+    public TextRange ListMarker { get; init; }
+
+    /// <summary>For checklist lines: <c>[x]</c> rather than <c>[ ]</c>.</summary>
+    public bool IsChecked { get; init; }
+
+    /// <summary>How far the line is indented: one level per tab (or per four spaces) at the start.</summary>
+    public int IndentLevel { get; init; }
+
     /// <summary>True for lines like <c>BOB: hi</c> where BOB hasn't been added as a character yet.</summary>
     public bool IsUnknownSpeaker => Type == ElementType.Dialogue && Character == null;
+
+    /// <summary>True for <c>!text</c>: written as a description on purpose, whatever it looks like.</summary>
+    public bool IsForcedAction => Type == ElementType.Action && !Label.IsEmpty;
 }
