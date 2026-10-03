@@ -362,6 +362,7 @@ public partial class MainWindow
         SaveDocument();
         var document = _library.CreateDocument(_project, System.IO.Path.GetFileNameWithoutExtension(dialog.FileName), text);
         RefreshDocuments(document.Title);
+        ShowWriting(); // if this came from the Home page
         SuggestLineSpacing(spacing, "This document");
     }
 

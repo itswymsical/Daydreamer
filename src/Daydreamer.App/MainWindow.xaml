@@ -69,22 +69,27 @@
                     <ColumnDefinition Width="Auto" />
                 </Grid.ColumnDefinitions>
 
-                <Border Width="32" Height="32" CornerRadius="9" Margin="16,0,0,0">
-                    <Border.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                            <GradientStop Color="#9775FA" Offset="0" />
-                            <GradientStop Color="#5C7CFA" Offset="1" />
-                        </LinearGradientBrush>
-                    </Border.Background>
-                    <TextBlock Style="{StaticResource Icon}" Text="&#xE753;" FontSize="17" Foreground="White"
-                               HorizontalAlignment="Center" />
-                </Border>
+                <!-- The logo doubles as the Home button, like Google Docs. -->
+                <Button x:Name="HomeButton" Style="{StaticResource FlatButton}" Margin="10,0,0,0" Padding="4" Click="Home_Click"
+                        ToolTip="Home" AutomationProperties.Name="Home" WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Border Width="32" Height="32" CornerRadius="9">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#9775FA" Offset="0" />
+                                <GradientStop Color="#5C7CFA" Offset="1" />
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <TextBlock Style="{StaticResource Icon}" Text="&#xE753;" FontSize="17" Foreground="White"
+                                   HorizontalAlignment="Center" />
+                    </Border>
+                </Button>
 
-                <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
+                <StackPanel Grid.Column="1" Margin="6,0,0,0" VerticalAlignment="Center">
                     <TextBox x:Name="TitleBox" Style="{StaticResource TitleBox}" HorizontalAlignment="Left" MinWidth="220"
                              FontSize="16" WindowChrome.IsHitTestVisibleInChrome="True"
                              ToolTip="Rename this document" KeyDown="TitleBox_KeyDown" LostKeyboardFocus="TitleBox_LostFocus" />
                     <TextBlock x:Name="ProjectLabel" Margin="7,0,0,0" FontSize="11.5" Foreground="{DynamicResource MutedTextBrush}" />
+                    <TextBlock x:Name="HomeTitle" Text="Daydreamer" FontSize="16" FontWeight="SemiBold" Margin="6,0,0,0" Visibility="Collapsed" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
@@ -114,6 +119,9 @@
                 </StackPanel>
             </Grid>
 
+            <!-- Below the title bar: either the writing view or the Home page (MainWindow.Home.cs switches them). -->
+            <Grid>
+            <DockPanel x:Name="WritingView">
             <!-- ═══════════════ Toolbar ═══════════════ -->
             <!-- A WrapPanel, so on a narrow window the toolbar flows onto a second row instead of being cut off. -->
             <Border DockPanel.Dock="Top" Margin="12,0,12,10" Padding="8,3" Background="{DynamicResource ToolbarBrush}" CornerRadius="18">
@@ -706,6 +714,84 @@
                         </TabItem>
                     </TabControl>
                 </Border>
+            </Grid>
+            </DockPanel>
+
+            <!-- ═══════════════ Home ═══════════════ -->
+            <ScrollViewer x:Name="HomeView" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+                <StackPanel MaxWidth="1190" Margin="40,10,40,40">
+                    <TextBlock x:Name="HomeGreeting" FontSize="26" FontWeight="SemiBold" Text="Welcome back" />
+                    <TextBlock Style="{StaticResource Hint}" FontSize="13" Margin="0,4,0,0"
+                               Text="Pick up where you left off, or start something new." />
+
+                    <TextBlock Style="{StaticResource SectionHeader}" Text="START SOMETHING NEW" Margin="0,28,0,10" />
+                    <WrapPanel>
+                        <Button Style="{StaticResource HomeCard}" Width="214" Click="HomeNewDocument_Click">
+                            <StackPanel>
+                                <Border Height="120" Background="{DynamicResource PageBrush}" CornerRadius="6"
+                                        BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE710;" FontSize="30" HorizontalAlignment="Center"
+                                               Foreground="{DynamicResource AccentBrush}" />
+                                </Border>
+                                <TextBlock Text="Blank document" FontWeight="SemiBold" FontSize="13.5" Margin="2,10,2,0" />
+                                <TextBlock x:Name="NewDocumentHint" Margin="2,2,2,0" FontSize="11.5" TextTrimming="CharacterEllipsis"
+                                           Foreground="{DynamicResource MutedTextBrush}" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource HomeCard}" Width="214" Click="HomeNewProject_Click">
+                            <StackPanel>
+                                <Border Height="120" Background="{DynamicResource PageBrush}" CornerRadius="6"
+                                        BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE8F4;" FontSize="30" HorizontalAlignment="Center"
+                                               Foreground="{DynamicResource AccentBrush}" />
+                                </Border>
+                                <TextBlock Text="New project" FontWeight="SemiBold" FontSize="13.5" Margin="2,10,2,0" />
+                                <TextBlock Text="A new story or series" Margin="2,2,2,0" FontSize="11.5" Foreground="{DynamicResource MutedTextBrush}" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource HomeCard}" Width="214" Click="Import_Click">
+                            <StackPanel>
+                                <Border Height="120" Background="{DynamicResource PageBrush}" CornerRadius="6"
+                                        BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1">
+                                    <Path Style="{StaticResource IconPath}" Data="{StaticResource IconImport}" Width="34" Height="34"
+                                          Stretch="Uniform" Stroke="{DynamicResource AccentBrush}" StrokeThickness="1.6" />
+                                </Border>
+                                <TextBlock Text="Import" FontWeight="SemiBold" FontSize="13.5" Margin="2,10,2,0" />
+                                <TextBlock Text="From Word or Google Docs (.docx)" Margin="2,2,2,0" FontSize="11.5" TextTrimming="CharacterEllipsis"
+                                           Foreground="{DynamicResource MutedTextBrush}" />
+                            </StackPanel>
+                        </Button>
+                    </WrapPanel>
+
+                    <TextBlock Style="{StaticResource SectionHeader}" Text="RECENT DOCUMENTS" Margin="0,22,0,10" />
+                    <TextBlock x:Name="NoRecent" Style="{StaticResource Hint}" FontSize="13" Visibility="Collapsed"
+                               Text="Nothing here yet. Create a document to get started." />
+                    <ItemsControl x:Name="RecentList">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <WrapPanel />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Button Style="{StaticResource HomeCard}" Width="214" Tag="{Binding}" Click="RecentDocument_Click"
+                                        AutomationProperties.Name="{Binding Title}">
+                                    <StackPanel>
+                                        <Border Height="252" Background="{DynamicResource PageBrush}" CornerRadius="6"
+                                                BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1" ClipToBounds="True">
+                                            <controls:DocumentPreview Text="{Binding Preview}" Styles="{Binding Styles}" Characters="{Binding Characters}" />
+                                        </Border>
+                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13.5" Margin="2,10,2,0" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Margin="2,2,2,0" FontSize="11.5" Foreground="{DynamicResource MutedTextBrush}" TextTrimming="CharacterEllipsis">
+                                            <Run Text="{Binding ProjectName, Mode=OneWay}" /><Run Text="  ·  " /><Run Text="{Binding EditedText, Mode=OneWay}" />
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </ScrollViewer>
             </Grid>
         </DockPanel>
     </Border>

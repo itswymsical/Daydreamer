@@ -138,6 +138,7 @@ public partial class MainWindow
         ApplyEditorTheme();
         ApplyFormatting();
         CharacterList.Items.Refresh(); // re-run the name-color converters against the new page color
+        if (IsHomeShown) RecentList.ItemsSource = BuildHomeItems(); // redraw the page previews in the new colors
         UpdateAmbient();
         UpdateShellButtons();
     }

@@ -91,7 +91,9 @@ public partial class MainWindow : Window
         if (_library.ListProjectFolders().Count == 0)
             SampleContent.CreateSampleProject(_library);
 
+        // The last document is opened behind the scenes, so it's one click away on the Home page.
         RefreshProjects(_settings.LastProject, _settings.LastDocument);
+        ShowHome();
     }
 
     private void SetUpEditor()
@@ -161,15 +163,19 @@ public partial class MainWindow : Window
         OpenProject(name, documentTitle: null);
     }
 
-    private void NewProject_Click(object sender, RoutedEventArgs e)
+    private void NewProject_Click(object sender, RoutedEventArgs e) => CreateProject();
+
+    /// <summary>Asks for a name, then creates the project with a first empty chapter. False if cancelled.</summary>
+    private bool CreateProject()
     {
         string? name = PromptDialog.Ask(this, "New project", "What's the story or series called?", "", "Create");
-        if (name == null) return;
+        if (name == null) return false;
 
         SaveAll();
         var project = _library.CreateProject(name);
         _library.CreateDocument(project, "Chapter 1");
         RefreshProjects(project.Name);
+        return true;
     }
 
     private void RenameProject_Click(object sender, RoutedEventArgs e)
@@ -261,6 +267,7 @@ public partial class MainWindow : Window
     private void NewDocument()
     {
         if (_project == null) return;
+        ShowWriting(focusEditor: false); // in case we're on the Home page
         SaveDocument();
         var document = _library.CreateDocument(_project, "Untitled document");
         RefreshDocuments(document.Title);

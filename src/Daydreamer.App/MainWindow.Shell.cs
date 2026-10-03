@@ -66,10 +66,10 @@ public partial class MainWindow
         UpdateShellButtons();
     }
 
-    /// <summary>Ambient mode is a dark-mode effect: it runs when it's switched on, the theme is dark, and the window is visible.</summary>
+    /// <summary>Ambient mode is a dark-mode effect: it runs when it's switched on, the theme is dark, and the page is on screen.</summary>
     private void UpdateAmbient()
     {
-        bool run = _ambientEnabled && ThemeManager.IsDark && WindowState != WindowState.Minimized;
+        bool run = _ambientEnabled && ThemeManager.IsDark && WindowState != WindowState.Minimized && !IsHomeShown;
         if (run) AmbientLights.Start();
         else AmbientLights.Stop();
         AmbientButton.Visibility = ThemeManager.IsDark ? Visibility.Visible : Visibility.Collapsed;
