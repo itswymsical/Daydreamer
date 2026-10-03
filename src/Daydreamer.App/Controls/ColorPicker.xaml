@@ -1,0 +1,70 @@
+<UserControl x:Class="Daydreamer.App.Controls.ColorPicker"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:app="clr-namespace:Daydreamer.App"
+             x:Name="Root">
+    <UserControl.Resources>
+        <app:HexToBrushConverter x:Key="HexToBrush" />
+
+        <!-- A round color dot you can click. -->
+        <ControlTemplate x:Key="SwatchTemplate" TargetType="Button">
+            <Border x:Name="Ring" CornerRadius="11" BorderThickness="2" BorderBrush="Transparent" Padding="2">
+                <ContentPresenter />
+            </Border>
+            <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter TargetName="Ring" Property="BorderBrush" Value="{DynamicResource MutedTextBrush}" />
+                </Trigger>
+            </ControlTemplate.Triggers>
+        </ControlTemplate>
+    </UserControl.Resources>
+
+    <StackPanel>
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- The current color. With no color chosen it shows the theme's gray. -->
+            <Grid Width="26" Height="26" VerticalAlignment="Center">
+                <Ellipse x:Name="DefaultDot" Fill="{DynamicResource MutedTextBrush}" />
+                <Ellipse Stroke="{DynamicResource DividerBrush}" StrokeThickness="1.5"
+                         Fill="{Binding SelectedColor, ElementName=Root, Converter={StaticResource HexToBrush}}" />
+            </Grid>
+
+            <Grid Grid.Column="1" Margin="8,0,0,0">
+                <TextBox x:Name="HexBox" TextChanged="HexBox_TextChanged" VerticalContentAlignment="Center"
+                         ToolTip="A color code such as #1971C2. Leave empty for the default gray." />
+                <TextBlock x:Name="Placeholder" Text="Default (gray)" Margin="12,0,0,0" VerticalAlignment="Center"
+                           Foreground="{DynamicResource MutedTextBrush}" IsHitTestVisible="False" />
+            </Grid>
+        </Grid>
+
+        <WrapPanel Margin="-2,8,0,0">
+            <Button Template="{StaticResource SwatchTemplate}" Click="Default_Click" Margin="0,0,2,2" Cursor="Hand"
+                    Focusable="False" ToolTip="Default — the theme's gray (recommended)" AutomationProperties.Name="Default gray">
+                <Grid Width="16" Height="16">
+                    <Ellipse Fill="{DynamicResource MutedTextBrush}" />
+                    <Ellipse Stroke="{DynamicResource PaperBrush}" StrokeThickness="1.5" Margin="3" />
+                </Grid>
+            </Button>
+            <ItemsControl x:Name="Swatches" Focusable="False">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Template="{StaticResource SwatchTemplate}" Tag="{Binding}" Click="Swatch_Click"
+                                Margin="0,0,2,2" Cursor="Hand" Focusable="False" ToolTip="{Binding}"
+                                AutomationProperties.Name="{Binding}">
+                            <Ellipse Width="16" Height="16" Fill="{Binding Converter={StaticResource HexToBrush}}" />
+                        </Button>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </WrapPanel>
+    </StackPanel>
+</UserControl>

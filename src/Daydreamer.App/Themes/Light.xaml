@@ -1,0 +1,32 @@
+<!-- Light mode colors. Dark.xaml has the same keys; ThemeManager swaps one for the other. -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+    <Color x:Key="AccentColor">#6741D9</Color>
+    <SolidColorBrush x:Key="AccentBrush" Color="#6741D9" />
+    <SolidColorBrush x:Key="AccentSoftBrush" Color="#EFEAFF" />
+
+    <SolidColorBrush x:Key="ChromeBrush" Color="#F9F8FC" />    <!-- window background -->
+    <SolidColorBrush x:Key="CanvasBrush" Color="#EEEDF3" />    <!-- around the page -->
+    <SolidColorBrush x:Key="PaperBrush" Color="#FFFFFF" />     <!-- panels, pop-ups, dialogs -->
+    <SolidColorBrush x:Key="PageBrush" Color="#FFFFFF" />      <!-- the writing page -->
+    <SolidColorBrush x:Key="ToolbarBrush" Color="#F0EDF8" />
+    <SolidColorBrush x:Key="DividerBrush" Color="#E6E3EE" />
+
+    <SolidColorBrush x:Key="TextBrush" Color="#202124" />
+    <SolidColorBrush x:Key="MutedTextBrush" Color="#6B6E76" />
+    <SolidColorBrush x:Key="HoverBrush" Color="#ECE9F5" />
+    <SolidColorBrush x:Key="PressedBrush" Color="#E0DBEF" />
+
+    <SolidColorBrush x:Key="WarningBrush" Color="#E8590C" />
+    <SolidColorBrush x:Key="WarningSoftBrush" Color="#FFF4E6" />
+    <SolidColorBrush x:Key="WarningChipBrush" Color="#FFE8CC" />
+    <SolidColorBrush x:Key="WarningTextBrush" Color="#9C4A0B" />
+    <SolidColorBrush x:Key="DangerTextBrush" Color="#C92A2A" />
+    <SolidColorBrush x:Key="CloseHoverBrush" Color="#C42B1C" />
+    <SolidColorBrush x:Key="IconBadgeBrush" Color="#B9B4CC" />
+
+    <SolidColorBrush x:Key="EditorSelectionBrush" Color="#509775FA" />
+    <SolidColorBrush x:Key="SearchMarkerBrush" Color="#80FFE066" />
+    <sys:Double x:Key="PageShadowOpacity">0.10</sys:Double>
+</ResourceDictionary>

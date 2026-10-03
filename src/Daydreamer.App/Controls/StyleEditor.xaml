@@ -1,0 +1,60 @@
+<UserControl x:Class="Daydreamer.App.Controls.StyleEditor"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:Daydreamer.App.Controls">
+    <UserControl.Resources>
+        <!-- Our three-state check box should look like every other (Windows 11) check box. -->
+        <Style TargetType="controls:InheritCheckBox" BasedOn="{StaticResource {x:Type CheckBox}}">
+            <Setter Property="MinWidth" Value="0" />
+        </Style>
+    </UserControl.Resources>
+
+    <!-- DataContext is a Daydreamer.Core.Models.TextStyle. Every edit applies to the document instantly. -->
+    <StackPanel>
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Font" />
+        <ComboBox IsEditable="True" IsTextSearchEnabled="True"
+                  ItemsSource="{x:Static controls:FontList.Names}"
+                  Text="{Binding FontFamily, UpdateSourceTrigger=PropertyChanged, Delay=300}">
+            <ComboBox.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <VirtualizingStackPanel />
+                </ItemsPanelTemplate>
+            </ComboBox.ItemsPanel>
+            <ComboBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding}" FontFamily="{Binding}" FontSize="14" />
+                </DataTemplate>
+            </ComboBox.ItemTemplate>
+        </ComboBox>
+
+        <Grid Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <StackPanel>
+                <TextBlock Style="{StaticResource FieldLabel}" Margin="0,0,0,4" Text="Size (pt)" />
+                <ComboBox IsEditable="True" ItemsSource="{x:Static controls:FontList.Sizes}"
+                          Text="{Binding FontSize, TargetNullValue='', UpdateSourceTrigger=PropertyChanged, Delay=400}" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                <TextBlock Style="{StaticResource FieldLabel}" Margin="0,0,0,4" Text="Line spacing" />
+                <ComboBox IsEditable="True" ItemsSource="{x:Static controls:FontList.LineSpacings}"
+                          ToolTip="1 = single, 1.15 = a little airier, 2 = double. Leave empty to inherit."
+                          Text="{Binding LineSpacing, TargetNullValue='', UpdateSourceTrigger=PropertyChanged, Delay=400}" />
+            </StackPanel>
+        </Grid>
+
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Emphasis" />
+        <WrapPanel>
+            <controls:InheritCheckBox Content="Bold" FontWeight="Bold" IsChecked="{Binding Bold}" Margin="0,0,14,0" />
+            <controls:InheritCheckBox Content="Italic" FontStyle="Italic" IsChecked="{Binding Italic}" Margin="0,0,14,0" />
+            <controls:InheritCheckBox IsChecked="{Binding Underline}">
+                <TextBlock Text="Underline" TextDecorations="Underline" />
+            </controls:InheritCheckBox>
+        </WrapPanel>
+
+        <TextBlock Style="{StaticResource FieldLabel}" Text="Text color (optional)" />
+        <controls:ColorPicker SelectedColor="{Binding Color}" />
+    </StackPanel>
+</UserControl>
