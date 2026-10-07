@@ -17,6 +17,13 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <!-- The logo, as the .exe's icon (Explorer, Start, the taskbar). Made by tools/MakeIcon.ps1. -->
+    <ApplicationIcon>Daydreamer.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The same icon for the window itself (taskbar button, Alt+Tab). -->
+    <Resource Include="Daydreamer.ico" />
+  </ItemGroup>
 
 </Project>

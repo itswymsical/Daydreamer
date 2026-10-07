@@ -36,6 +36,21 @@ public sealed class AppSettings
     /// <summary>Ambient mode (drifting lights). Empty means on, unless Windows animations are turned off.</summary>
     public bool? Ambient { get; set; }
 
+    /// <summary>Wavy lines under misspelled words (switched in the editor's right-click menu).</summary>
+    public bool SpellCheck { get; set; } = true;
+
+    /// <summary>True when the side panel (Characters, Styles, Music, Guide) has been tucked away.</summary>
+    public bool SidePanelHidden { get; set; }
+
+    /// <summary>How loud the music is, 0 to 1.</summary>
+    public double MusicVolume { get; set; } = 0.7;
+
+    /// <summary>How many seconds songs take to fade into each other (0 turns crossfading off).</summary>
+    public double CrossfadeSeconds { get; set; } = 3;
+
+    /// <summary>The playlist the Music tab showed last (its id). Empty means All songs.</summary>
+    public string? MusicPlaylist { get; set; }
+
     /// <summary>Where the window was when the app last closed.</summary>
     public WindowPlacement? Window { get; set; }
 

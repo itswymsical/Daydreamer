@@ -37,6 +37,12 @@ public sealed class MusicStore
     public string Folder { get; }
     public MusicLibrary Library { get; }
 
+    /// <summary>
+    /// True if music.json was there but couldn't be read (OneDrive had it locked, say). It's then never
+    /// saved over, so your playlists aren't replaced by the empty list the app started with.
+    /// </summary>
+    public bool CouldNotLoad { get; private set; }
+
     public static bool CanPlay(string path) => SupportedExtensions.Contains(Path.GetExtension(path));
 
     public string PathOf(Track track) => Path.Combine(Folder, track.FileName);
@@ -167,6 +173,7 @@ public sealed class MusicStore
 
     public void Save()
     {
+        if (CouldNotLoad) return;
         Directory.CreateDirectory(Folder);
         string path = Path.Combine(Folder, ListFileName);
         string temp = path + ".saving";
@@ -174,7 +181,7 @@ public sealed class MusicStore
         File.Move(temp, path, overwrite: true);
     }
 
-    private static MusicLibrary Load(string path)
+    private MusicLibrary Load(string path)
     {
         try
         {
@@ -185,7 +192,19 @@ public sealed class MusicStore
         {
             // A damaged list shouldn't stop the app (the song files are all still in the folder).
             // Keep a copy of it before it gets saved over, in case it can be fixed by hand.
-            File.Copy(path, path + ".damaged", overwrite: true);
+            try
+            {
+                File.Copy(path, path + ".damaged", overwrite: true);
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                // Couldn't keep a copy; the app still starts.
+            }
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Locked or unreadable for now (OneDrive syncing, say): start with an empty list this time.
+            CouldNotLoad = true;
         }
         return new MusicLibrary();
     }

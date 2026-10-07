@@ -31,6 +31,11 @@
     <Geometry x:Key="IconIndent">M6.5,3.5 L14.5,3.5 M9,8 L14.5,8 M6.5,12.5 L14.5,12.5 M1.5,8 L6,8 M4.1,6.1 L6,8 L4.1,9.9</Geometry>
     <Geometry x:Key="IconClearFormatting">M2.5,3 L10.5,3 M6.5,3 L6.5,13 M10.5,9.5 L14.5,13.5 M14.5,9.5 L10.5,13.5</Geometry>
     <Geometry x:Key="IconImport">M8,1.5 L8,9.5 M5,6.5 L8,9.5 L11,6.5 M2.5,10.5 L2.5,14 L13.5,14 L13.5,10.5</Geometry>
+    <!-- A window with a panel down its right side / with the panel tucked away (just the edge showing). -->
+    <Geometry x:Key="IconSidePanel">M2,3 L14,3 L14,13 L2,13 Z M9.5,3 L9.5,13 M11,6 L12.5,6 M11,8 L12.5,8</Geometry>
+    <Geometry x:Key="IconSidePanelHidden">M2,3 L14,3 L14,13 L2,13 Z M12,3 L12,13</Geometry>
+    <!-- The corners of a viewfinder: focus on what's in the middle. -->
+    <Geometry x:Key="IconFocus">M2,5.5 L2,2 L5.5,2 M10.5,2 L14,2 L14,5.5 M14,10.5 L14,14 L10.5,14 M5.5,14 L2,14 L2,10.5</Geometry>
 
     <!-- ── Text ──────────────────────────────────────────────────────────── -->
     <Style x:Key="SectionHeader" TargetType="TextBlock">
@@ -220,6 +225,8 @@
     <!-- Simple underlined tabs for the right-hand panel. -->
     <Style x:Key="PanelTab" TargetType="TabItem">
         <Setter Property="Cursor" Value="Hand" />
+        <!-- A tab's content takes its text color from the tab (otherwise plain text there is black, even in dark mode). -->
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TabItem">

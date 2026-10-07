@@ -28,6 +28,7 @@ public sealed class DocumentInfo
 ///       project.json          ← characters + formatting rules
 ///       Chapter 1.dream       ← documents are plain UTF-8 text
 ///       .trash/               ← deleted documents go here, never straight to oblivion
+///     Music/                  ← the music library: copies of your songs, and music.json (not a project)
 /// </code>
 /// Documents being plain text means your writing is always readable, even without this app.
 /// </summary>
@@ -36,6 +37,12 @@ public sealed class Library
     public const string DocumentExtension = ".dream";
     public const string ProjectFileName = "project.json";
     public const string TrashFolderName = ".trash";
+
+    /// <summary>
+    /// The music library (songs and playlists, see Music/MusicStore.cs) lives in this folder beside the
+    /// projects. It isn't a project, so it's left out of the project list and no project can take its name.
+    /// </summary>
+    public const string MusicFolderName = "Music";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -52,11 +59,13 @@ public sealed class Library
 
     public string RootPath { get; }
 
+    public string MusicFolder => Path.Combine(RootPath, MusicFolderName);
+
     // ── Projects ────────────────────────────────────────────────────────────
 
     public List<string> ListProjectFolders() =>
         Directory.EnumerateDirectories(RootPath)
-            .Where(d => !Path.GetFileName(d).StartsWith('.'))
+            .Where(d => !Path.GetFileName(d).StartsWith('.') && !IsMusicFolderName(Path.GetFileName(d)))
             .OrderBy(d => Path.GetFileName(d), StringComparer.CurrentCultureIgnoreCase)
             .ToList();
 
@@ -86,7 +95,7 @@ public sealed class Library
 
     public Project CreateProject(string name)
     {
-        string folder = UniquePath(RootPath, SafeName(name, "Untitled project"), extension: "");
+        string folder = UniquePath(RootPath, ProjectFolderName(name, "Untitled project"), extension: "");
         Directory.CreateDirectory(folder);
         var project = new Project { FolderPath = folder };
         SaveProject(project);
@@ -96,7 +105,7 @@ public sealed class Library
     /// <summary>Renames the project folder. Returns the new folder path.</summary>
     public string RenameProject(Project project, string newName)
     {
-        string safe = SafeName(newName, project.Name);
+        string safe = ProjectFolderName(newName, project.Name);
         if (safe == project.Name) return project.FolderPath;
 
         string target = UniquePath(RootPath, safe, extension: "");
@@ -185,6 +194,15 @@ public sealed class Library
         string cleaned = new string((name ?? "").Where(c => !invalid.Contains(c)).ToArray()).Trim().TrimEnd('.');
         return cleaned.Length == 0 ? fallback : cleaned;
     }
+
+    /// <summary>A safe folder name for a project. "Music" belongs to the music library, so a project called that gets "Music (2)".</summary>
+    private static string ProjectFolderName(string? name, string fallback)
+    {
+        string safe = SafeName(name, fallback);
+        return IsMusicFolderName(safe) ? $"{safe} (2)" : safe;
+    }
+
+    private static bool IsMusicFolderName(string? name) => string.Equals(name, MusicFolderName, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>"Chapter 1" → "Chapter 1 (2)" if the name is already taken.</summary>
     private static string UniquePath(string folder, string name, string extension)

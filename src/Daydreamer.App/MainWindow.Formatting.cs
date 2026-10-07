@@ -52,7 +52,7 @@ public partial class MainWindow
                 SelectCharacter(character);
                 break;
             case StyleEntry entry:
-                FormattingTabs.SelectedIndex = 1;
+                ShowSidePanelTab(StylesTab);
                 StylesList.SelectedItem = entry;
                 StylesList.ScrollIntoView(entry);
                 break;

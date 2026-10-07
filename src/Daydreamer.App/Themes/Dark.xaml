@@ -23,6 +23,7 @@
     <SolidColorBrush x:Key="WarningChipBrush" Color="#3B2A17" />
     <SolidColorBrush x:Key="WarningTextBrush" Color="#FFB870" />
     <SolidColorBrush x:Key="DangerTextBrush" Color="#FF8787" />
+    <SolidColorBrush x:Key="SpellingBrush" Color="#FF6B6B" />
     <SolidColorBrush x:Key="CloseHoverBrush" Color="#C42B1C" />
     <SolidColorBrush x:Key="IconBadgeBrush" Color="#4C4860" />
 

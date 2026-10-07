@@ -23,6 +23,7 @@
     <SolidColorBrush x:Key="WarningChipBrush" Color="#FFE8CC" />
     <SolidColorBrush x:Key="WarningTextBrush" Color="#9C4A0B" />
     <SolidColorBrush x:Key="DangerTextBrush" Color="#C92A2A" />
+    <SolidColorBrush x:Key="SpellingBrush" Color="#E03131" />  <!-- the wavy line under misspelled words -->
     <SolidColorBrush x:Key="CloseHoverBrush" Color="#C42B1C" />
     <SolidColorBrush x:Key="IconBadgeBrush" Color="#B9B4CC" />
 

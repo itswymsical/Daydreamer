@@ -15,9 +15,11 @@ public sealed class Project : ObservableObject
     private StyleSheet _styles = StyleSheet.CreateDefault();
     private HeadingMap _importHeadings = new();
     private Keywords _keywords = new();
+    private ObservableCollection<string> _knownWords = [];
 
     public Project()
     {
+        _knownWords.CollectionChanged += OnKnownWordsChanged;
         _characters.CollectionChanged += OnCharactersChanged;
         _styles.PropertyChanged += OnStylesChanged;
         _importHeadings.PropertyChanged += OnStylesChanged;
@@ -69,6 +71,26 @@ public sealed class Project : ObservableObject
             OnPropertyChanged();
         }
     }
+
+    /// <summary>
+    /// Words this story uses that the spell checker shouldn't underline: made-up places, slang, sounds
+    /// ("Neo-Kyoto", "gonna"). Character names never need adding; they're always known.
+    /// </summary>
+    public ObservableCollection<string> KnownWords
+    {
+        get => _knownWords;
+        set
+        {
+            _knownWords.CollectionChanged -= OnKnownWordsChanged;
+            _knownWords = value ?? [];
+            _knownWords.CollectionChanged += OnKnownWordsChanged;
+            OnPropertyChanged();
+        }
+    }
+
+    // A new word changes which words are underlined (and needs saving), like a formatting change.
+    private void OnKnownWordsChanged(object? sender, NotifyCollectionChangedEventArgs e) =>
+        FormattingChanged?.Invoke(this, EventArgs.Empty);
 
     /// <summary>What Google Docs / Word headings become when importing or pasting.</summary>
     public HeadingMap ImportHeadings

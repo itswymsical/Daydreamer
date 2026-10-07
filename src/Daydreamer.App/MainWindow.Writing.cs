@@ -727,13 +727,15 @@ public partial class MainWindow
 
     // ── The suggestion bar ─────────────────────────────────────────────────
 
-    private void ShowInfo(string message, string actionText, Action action)
+    /// <param name="showFor">How long it stays up before tidying itself away (20 seconds unless you say).</param>
+    private void ShowInfo(string message, string actionText, Action action, TimeSpan? showFor = null)
     {
         InfoBarText.Text = message;
         InfoBarAction.Content = actionText;
         _infoBarAction = action;
         InfoBar.Visibility = Visibility.Visible;
         _infoBarTimer.Stop();
+        _infoBarTimer.Interval = showFor ?? TimeSpan.FromSeconds(20);
         _infoBarTimer.Start();
     }
 

@@ -6,10 +6,10 @@
         xmlns:ambient="clr-namespace:Daydreamer.App.Ambient"
         xmlns:controls="clr-namespace:Daydreamer.App.Controls"
         xmlns:models="clr-namespace:Daydreamer.Core.Models;assembly=Daydreamer.Core"
-        Title="Daydreamer" Width="1440" Height="900" MinWidth="960" MinHeight="580"
+        Title="Daydreamer" Icon="Daydreamer.ico" Width="1440" Height="900" MinWidth="960" MinHeight="580"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource ChromeBrush}" Foreground="{DynamicResource TextBrush}"
-        PreviewKeyDown="Window_PreviewKeyDown" Closing="Window_Closing" SizeChanged="Window_SizeChanged">
+        PreviewKeyDown="Window_PreviewKeyDown" KeyDown="Window_KeyDown" Closing="Window_Closing" SizeChanged="Window_SizeChanged">
 
     <!-- Our own title bar: the top 52px drag the window, double-click maximizes, edges resize. -->
     <WindowChrome.WindowChrome>
@@ -99,6 +99,42 @@
                 </StackPanel>
 
                 <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
+                    <!-- The music player, small: what's playing and its buttons (MainWindow.Music.cs). Click the song for the Music tab. -->
+                    <Border x:Name="MiniPlayer" Background="{DynamicResource ToolbarBrush}" CornerRadius="16" Padding="3,0"
+                            Margin="0,0,8,0" Visibility="Collapsed">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Style="{StaticResource FlatButton}" Click="ShowMusic_Click" Padding="8,4"
+                                    ToolTip="Open the Music tab" WindowChrome.IsHitTestVisibleInChrome="True">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xEC4F;" FontSize="13" Margin="0,0,8,0"
+                                               Foreground="{DynamicResource AccentBrush}" />
+                                    <TextBlock x:Name="MiniTitle" FontSize="12.5" MaxWidth="210" TextTrimming="CharacterEllipsis" />
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource FlatButton}" Click="PreviousSong_Click" Padding="7,4" ToolTip="Previous"
+                                    WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Previous song">
+                                <TextBlock Style="{StaticResource Icon}" Text="&#xE892;" FontSize="11" />
+                            </Button>
+                            <Button x:Name="MiniPlayPause" Style="{StaticResource FlatButton}" Click="PlayPause_Click" Padding="7,4"
+                                    WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Play or pause">
+                                <TextBlock x:Name="MiniPlayPauseIcon" Style="{StaticResource Icon}" Text="&#xE768;" FontSize="12" />
+                            </Button>
+                            <Button Style="{StaticResource FlatButton}" Click="NextSong_Click" Padding="7,4" ToolTip="Next"
+                                    WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Next song">
+                                <TextBlock Style="{StaticResource Icon}" Text="&#xE893;" FontSize="11" />
+                            </Button>
+                        </StackPanel>
+                    </Border>
+                    <Button x:Name="MusicButton" Style="{StaticResource FlatButton}" Click="ShowMusic_Click" ToolTip="Music"
+                            WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Music">
+                        <TextBlock Style="{StaticResource Icon}" Text="&#xEC4F;" />
+                    </Button>
+                    <!-- Focus mode: just the page (MainWindow.Layout.cs). -->
+                    <ToggleButton x:Name="FocusButton" Style="{StaticResource FlatButton}"
+                                  Checked="FocusButton_Checked" Unchecked="FocusButton_Checked"
+                                  WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Focus mode">
+                        <Path Style="{StaticResource IconPath}" Data="{StaticResource IconFocus}" />
+                    </ToggleButton>
                     <Button x:Name="AmbientButton" Style="{StaticResource FlatButton}" Click="AmbientToggle_Click"
                             WindowChrome.IsHitTestVisibleInChrome="True">
                         <TextBlock x:Name="AmbientIcon" Style="{StaticResource Icon}" />
@@ -124,7 +160,7 @@
             <DockPanel x:Name="WritingView">
             <!-- ═══════════════ Toolbar ═══════════════ -->
             <!-- A WrapPanel, so on a narrow window the toolbar flows onto a second row instead of being cut off. -->
-            <Border DockPanel.Dock="Top" Margin="12,0,12,10" Padding="8,3" Background="{DynamicResource ToolbarBrush}" CornerRadius="18">
+            <Border x:Name="Toolbar" DockPanel.Dock="Top" Margin="12,0,12,10" Padding="8,3" Background="{DynamicResource ToolbarBrush}" CornerRadius="18">
                 <WrapPanel>
                     <Button Style="{StaticResource FlatButton}" Click="Undo_Click" ToolTip="Undo (Ctrl+Z)">
                         <TextBlock Style="{StaticResource Icon}" Text="&#xE7A7;" />
@@ -283,6 +319,11 @@
                     <Button Style="{StaticResource FlatButton}" Click="Find_Click" ToolTip="Find (Ctrl+F)">
                         <TextBlock Style="{StaticResource Icon}" Text="&#xE721;" />
                     </Button>
+                    <!-- Tucks the side panel (Characters, Styles, Music, Guide) away to give the page more room. -->
+                    <Button x:Name="SidePanelButton" Style="{StaticResource FlatButton}" Click="SidePanelToggle_Click"
+                            AutomationProperties.Name="Show or hide the side panel">
+                        <Path x:Name="SidePanelIcon" Style="{StaticResource IconPath}" Data="{StaticResource IconSidePanel}" />
+                    </Button>
                 </WrapPanel>
             </Border>
 
@@ -290,6 +331,16 @@
             <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,1,0,0" Padding="16,6">
                 <DockPanel>
                     <TextBlock x:Name="CaretInfo" DockPanel.Dock="Right" FontSize="12" Foreground="{DynamicResource MutedTextBrush}" />
+                    <!-- "3 spelling mistakes": click to go to the next one (MainWindow.Spelling.cs). -->
+                    <Button x:Name="SpellingStatus" DockPanel.Dock="Right" Style="{StaticResource FlatButton}" Margin="0,-2,18,-2"
+                            Padding="7,1" MinHeight="0" Visibility="Collapsed" Click="SpellingStatus_Click"
+                            ToolTip="Go to the next spelling mistake (right-click it for fixes)">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Data="M0,3 L1.5,1 L3,3 L4.5,1 L6,3 L7.5,1 L9,3" Stroke="{DynamicResource SpellingBrush}" StrokeThickness="1.2"
+                                  VerticalAlignment="Center" Margin="0,2,6,0" />
+                            <TextBlock x:Name="SpellingStatusText" FontSize="12" Foreground="{DynamicResource MutedTextBrush}" />
+                        </StackPanel>
+                    </Button>
                     <TextBlock x:Name="StatsText" FontSize="12" Foreground="{DynamicResource MutedTextBrush}" />
                 </DockPanel>
             </Border>
@@ -297,15 +348,15 @@
             <!-- ═══════════════ Main area ═══════════════ -->
             <Grid>
                 <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="250" MinWidth="180" />
-                    <ColumnDefinition Width="6" />
+                    <ColumnDefinition x:Name="LeftColumn" Width="250" MinWidth="180" />
+                    <ColumnDefinition x:Name="LeftSplitterColumn" Width="6" />
                     <ColumnDefinition Width="*" MinWidth="400" />
-                    <ColumnDefinition Width="6" />
-                    <ColumnDefinition Width="350" MinWidth="280" />
+                    <ColumnDefinition x:Name="RightSplitterColumn" Width="6" />
+                    <ColumnDefinition x:Name="RightColumn" Width="350" MinWidth="280" />
                 </Grid.ColumnDefinitions>
 
                 <!-- ─── Left: projects and documents ─── -->
-                <DockPanel Margin="12,0,0,12">
+                <DockPanel x:Name="ProjectPanel" Margin="12,0,0,12">
                     <DockPanel DockPanel.Dock="Top" Margin="4,4,0,6">
                         <Button DockPanel.Dock="Right" Style="{StaticResource FlatButton}" Click="NewProject_Click" ToolTip="New project" MinHeight="26" Padding="6,3">
                             <TextBlock Style="{StaticResource Icon}" Text="&#xE710;" FontSize="12" />
@@ -365,7 +416,7 @@
                     </ListBox>
                 </DockPanel>
 
-                <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Background="Transparent" />
+                <GridSplitter x:Name="LeftSplitter" Grid.Column="1" HorizontalAlignment="Stretch" Background="Transparent" />
 
                 <!-- ─── Center: the page ─── -->
                 <Border Grid.Column="2" Background="{DynamicResource CanvasBrush}" CornerRadius="12,12,0,0" ClipToBounds="True">
@@ -408,7 +459,7 @@
                     </Grid>
                 </Border>
 
-                <GridSplitter Grid.Column="3" HorizontalAlignment="Stretch" Background="Transparent" />
+                <GridSplitter x:Name="RightSplitter" Grid.Column="3" HorizontalAlignment="Stretch" Background="Transparent" />
 
                 <!-- ─── Right: the formatting tool ─── -->
                 <Border x:Name="FormattingPanel" Grid.Column="4" Margin="0,0,12,12" Background="{DynamicResource PaperBrush}"
@@ -416,7 +467,7 @@
                     <TabControl x:Name="FormattingTabs" Style="{StaticResource PanelTabs}">
 
                         <!-- Characters -->
-                        <TabItem Header="Characters">
+                        <TabItem x:Name="CharactersTab" Header="Characters">
                             <Grid>
                                 <Grid.RowDefinitions>
                                     <RowDefinition Height="Auto" />
@@ -551,7 +602,7 @@
                         </TabItem>
 
                         <!-- Styles -->
-                        <TabItem Header="Styles">
+                        <TabItem x:Name="StylesTab" Header="Styles">
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
                                 <StackPanel Margin="10,12,10,16">
                                     <TextBlock Style="{StaticResource Hint}" Margin="6,0,6,8"
@@ -712,6 +763,212 @@
                             </ScrollViewer>
                         </TabItem>
 
+                        <!-- Music: songs, playlists and the player (MainWindow.Music.cs). It's the same for every project. -->
+                        <TabItem x:Name="MusicTab" Header="Music">
+                            <Grid>
+                                <Grid.Resources>
+                                    <!-- The sliders fill with Daydreamer's purple instead of the Windows accent color
+                                         (these are the names WPF's Fluent theme looks the colors up by). -->
+                                    <SolidColorBrush x:Key="AccentFillColorDefaultBrush" Color="{DynamicResource AccentColor}" />
+                                    <SolidColorBrush x:Key="AccentFillColorSecondaryBrush" Color="{DynamicResource AccentColor}" Opacity="0.9" />
+                                    <SolidColorBrush x:Key="AccentFillColorTertiaryBrush" Color="{DynamicResource AccentColor}" Opacity="0.8" />
+                                    <SolidColorBrush x:Key="SliderThumbBackground" Color="{DynamicResource AccentColor}" />
+                                    <SolidColorBrush x:Key="SliderThumbBackgroundPointerOver" Color="{DynamicResource AccentColor}" />
+                                </Grid.Resources>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="*" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <!-- Now playing -->
+                                <Border Margin="12,12,12,0" Padding="14,12,14,8" CornerRadius="10" Background="{DynamicResource ToolbarBrush}">
+                                    <StackPanel>
+                                        <DockPanel>
+                                            <Border DockPanel.Dock="Left" Width="40" Height="40" CornerRadius="8" Margin="0,0,12,0">
+                                                <Border.Background>
+                                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                                        <GradientStop Color="#9775FA" Offset="0" />
+                                                        <GradientStop Color="#5C7CFA" Offset="1" />
+                                                    </LinearGradientBrush>
+                                                </Border.Background>
+                                                <TextBlock Style="{StaticResource Icon}" Text="&#xEC4F;" FontSize="18" Foreground="White"
+                                                           HorizontalAlignment="Center" />
+                                            </Border>
+                                            <StackPanel VerticalAlignment="Center">
+                                                <TextBlock x:Name="NowPlayingTitle" FontSize="14" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock x:Name="NowPlayingArtist" FontSize="12" Margin="0,1,0,0" TextTrimming="CharacterEllipsis"
+                                                           Foreground="{DynamicResource MutedTextBrush}" />
+                                            </StackPanel>
+                                        </DockPanel>
+
+                                        <!-- Click or drag to jump around in the song. -->
+                                        <Slider x:Name="SeekBar" Margin="0,10,0,0" IsMoveToPointEnabled="True" Minimum="0" Maximum="1"
+                                                AutomationProperties.Name="Position in the song"
+                                                ValueChanged="SeekBar_ValueChanged"
+                                                Thumb.DragStarted="SeekBar_DragStarted" Thumb.DragCompleted="SeekBar_DragCompleted" />
+                                        <DockPanel Margin="0,0,0,2">
+                                            <TextBlock x:Name="DurationText" DockPanel.Dock="Right" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" />
+                                            <TextBlock x:Name="PositionText" FontSize="11" Foreground="{DynamicResource MutedTextBrush}" />
+                                        </DockPanel>
+
+                                        <DockPanel>
+                                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                                                <Button x:Name="MuteButton" Style="{StaticResource FlatButton}" Click="Mute_Click" Padding="6,4">
+                                                    <TextBlock x:Name="VolumeIcon" Style="{StaticResource Icon}" Text="&#xE767;" FontSize="13" />
+                                                </Button>
+                                                <Slider x:Name="VolumeSlider" Width="96" Minimum="0" Maximum="1" VerticalAlignment="Center"
+                                                        SmallChange="0.05" LargeChange="0.1" IsMoveToPointEnabled="True"
+                                                        AutomationProperties.Name="Volume" ValueChanged="VolumeSlider_ValueChanged" />
+                                            </StackPanel>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Button Style="{StaticResource FlatButton}" Click="PreviousSong_Click" ToolTip="Previous (or back to the start of this song)"
+                                                        AutomationProperties.Name="Previous song">
+                                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE892;" FontSize="13" />
+                                                </Button>
+                                                <Button x:Name="PlayPauseButton" Style="{StaticResource AccentButton}" Click="PlayPause_Click"
+                                                        Width="40" Height="40" Padding="0" Margin="2,0" AutomationProperties.Name="Play or pause">
+                                                    <TextBlock x:Name="PlayPauseIcon" Style="{StaticResource Icon}" Text="&#xE768;" FontSize="16" />
+                                                </Button>
+                                                <Button Style="{StaticResource FlatButton}" Click="NextSong_Click" ToolTip="Next" AutomationProperties.Name="Next song">
+                                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE893;" FontSize="13" />
+                                                </Button>
+                                            </StackPanel>
+                                        </DockPanel>
+
+                                        <TextBlock x:Name="MusicProblem" Style="{StaticResource Hint}" Margin="0,6,0,2" Visibility="Collapsed"
+                                                   Foreground="{DynamicResource WarningTextBrush}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <!-- Playlists -->
+                                <StackPanel Grid.Row="1" Margin="16,14,16,0">
+                                    <DockPanel Margin="4,0,0,6">
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource FlatButton}" Click="NewPlaylist_Click" ToolTip="New playlist"
+                                                MinHeight="26" Padding="6,3">
+                                            <TextBlock Style="{StaticResource Icon}" Text="&#xE710;" FontSize="12" />
+                                        </Button>
+                                        <TextBlock Style="{StaticResource SectionHeader}" Text="PLAYLIST" Margin="0" VerticalAlignment="Center" />
+                                    </DockPanel>
+                                    <ComboBox x:Name="PlaylistPicker" HorizontalAlignment="Stretch" SelectionChanged="PlaylistPicker_SelectionChanged">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
+                                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                        <Button x:Name="RenamePlaylistButton" Style="{StaticResource FlatButton}" Click="RenamePlaylist_Click"
+                                                ToolTip="Rename this playlist" Padding="8,3" MinHeight="26">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Style="{StaticResource Icon}" Text="&#xE8AC;" FontSize="12" Margin="0,0,5,0" />
+                                                <TextBlock Text="Rename" FontSize="12" />
+                                            </StackPanel>
+                                        </Button>
+                                        <Button x:Name="DeletePlaylistButton" Style="{StaticResource FlatButton}" Click="DeletePlaylist_Click"
+                                                ToolTip="Delete this playlist (its songs stay in All songs)" Padding="8,3" MinHeight="26">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Style="{StaticResource Icon}" Text="&#xE74D;" FontSize="12" Margin="0,0,5,0" />
+                                                <TextBlock Text="Delete" FontSize="12" />
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Style="{StaticResource FlatButton}" Click="OpenMusicFolder_Click" Padding="8,3" MinHeight="26"
+                                                ToolTip="Show the Music folder, where Daydreamer keeps its copies of your songs">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Style="{StaticResource Icon}" Text="&#xE838;" FontSize="12" Margin="0,0,5,0" />
+                                                <TextBlock Text="Files" FontSize="12" />
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </StackPanel>
+
+                                <!-- Songs -->
+                                <DockPanel Grid.Row="2" Margin="20,14,16,4">
+                                    <Button x:Name="AddSongsButton" DockPanel.Dock="Right" Style="{StaticResource AccentButton}" Click="AddSongs_Click" Padding="10,4"
+                                            ToolTip="Copy songs into Daydreamer's Music folder (MP3, M4A, WAV, WMA or FLAC). Or drag them here.">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Style="{StaticResource Icon}" Text="&#xE710;" FontSize="11" Margin="0,0,6,0" />
+                                            <TextBlock Text="Add songs" />
+                                        </StackPanel>
+                                    </Button>
+                                    <TextBlock x:Name="SongCount" Style="{StaticResource SectionHeader}" Margin="0" VerticalAlignment="Center" />
+                                </DockPanel>
+
+                                <Grid Grid.Row="3" Margin="10,0,10,10">
+                                    <!-- Double-click a song to play the list from there; drag songs to reorder them, or drop files in from Explorer. -->
+                                    <ListBox x:Name="SongList" Style="{StaticResource SoftList}" AllowDrop="True"
+                                             MouseDoubleClick="SongList_MouseDoubleClick" KeyDown="SongList_KeyDown"
+                                             PreviewMouseLeftButtonDown="SongList_PreviewMouseLeftButtonDown" PreviewMouseMove="SongList_PreviewMouseMove"
+                                             DragOver="SongList_DragOver" Drop="SongList_Drop" ContextMenuOpening="SongList_ContextMenuOpening">
+                                        <ListBox.ContextMenu>
+                                            <ContextMenu />
+                                        </ListBox.ContextMenu>
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel Background="Transparent">
+                                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Length}" FontSize="11.5" Margin="8,0,0,0"
+                                                               VerticalAlignment="Center" Foreground="{DynamicResource MutedTextBrush}" />
+                                                    <!-- A speaker beside the song that's playing, a note beside the rest. -->
+                                                    <TextBlock DockPanel.Dock="Left" Width="24" FontSize="12" VerticalAlignment="Center">
+                                                        <TextBlock.Style>
+                                                            <Style TargetType="TextBlock" BasedOn="{StaticResource Icon}">
+                                                                <Setter Property="Text" Value="&#xEC4F;" />
+                                                                <Setter Property="Foreground" Value="{DynamicResource MutedTextBrush}" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsPlaying}" Value="True">
+                                                                        <Setter Property="Text" Value="&#xE767;" />
+                                                                        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                    <StackPanel>
+                                                        <TextBlock Text="{Binding Title}" FontSize="13.5" TextTrimming="CharacterEllipsis">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding IsPlaying}" Value="True">
+                                                                            <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+                                                                            <Setter Property="FontWeight" Value="SemiBold" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                        <TextBlock Text="{Binding Artist}" FontSize="11.5" Margin="0,1,0,0" TextTrimming="CharacterEllipsis"
+                                                                   Foreground="{DynamicResource MutedTextBrush}"
+                                                                   Visibility="{Binding Artist, Converter={StaticResource NullToCollapsed}}" />
+                                                    </StackPanel>
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+
+                                    <StackPanel x:Name="SongsEmpty" VerticalAlignment="Center" HorizontalAlignment="Center" Margin="24,0"
+                                                IsHitTestVisible="False" Visibility="Collapsed">
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xEC4F;" FontSize="34" HorizontalAlignment="Center"
+                                                   Foreground="{DynamicResource IconBadgeBrush}" />
+                                        <TextBlock x:Name="SongsEmptyText" Style="{StaticResource Hint}" FontSize="12.5" Margin="0,10,0,0"
+                                                   TextAlignment="Center" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Settings for how songs follow each other. -->
+                                <Border Grid.Row="4" BorderBrush="{DynamicResource DividerBrush}" BorderThickness="0,1,0,0" Padding="20,8,16,10">
+                                    <DockPanel>
+                                        <ComboBox x:Name="CrossfadePicker" DockPanel.Dock="Right" Width="96" VerticalAlignment="Center"
+                                                  AutomationProperties.Name="Crossfade length" SelectionChanged="CrossfadePicker_SelectionChanged" />
+                                        <TextBlock Text="Crossfade between songs" FontSize="12" VerticalAlignment="Center"
+                                                   Foreground="{DynamicResource MutedTextBrush}"
+                                                   ToolTip="How long one song takes to fade into the next. Songs that cut in line fade in this way too." />
+                                    </DockPanel>
+                                </Border>
+                            </Grid>
+                        </TabItem>
+
                         <!-- Guide -->
                         <TabItem Header="Guide">
                             <ScrollViewer VerticalScrollBarVisibility="Auto">
@@ -746,6 +1003,10 @@
                                     <TextBlock Style="{StaticResource Hint}" Margin="0,8,0,0"
                                                Text="Alignment is different: like a word processor, it's just for the line you're on (or the lines you've selected). A line remembers its alignment, and the kind you picked from the menu, in a little tag at its start that stays hidden." />
 
+                                    <TextBlock Style="{StaticResource SectionHeader}" Text="SPELLING" Margin="0,22,0,2" />
+                                    <TextBlock Style="{StaticResource Hint}"
+                                               Text="Misspelled words get a wavy red line; right-click one for fixes, or to add it to this story's dictionary. Only the words people read are checked: names, SFX and notes are left alone, and so are words in capitals. The status bar counts the mistakes, and clicking it goes to the next one. Turn checking off from the right-click menu." />
+
                                     <TextBlock Style="{StaticResource SectionHeader}" Text="BRINGING TEXT IN" Margin="0,22,0,2" />
                                     <TextBlock Style="{StaticResource Hint}"
                                                Text="Import a .docx (Word or Google Docs) or paste from them: headings become pages and panels (Styles → Importing), lists and emphasis come along, centered lines stay centered, and an imported document's font, size and spacing become your project's — with an Undo." />
@@ -758,7 +1019,9 @@
                                         <Bold>Ctrl+Shift+L / E / R / J</Bold> — align left / center / right / justify<LineBreak />
                                         <Bold>Ctrl+N</Bold> — new document<LineBreak />
                                         <Bold>Ctrl+F</Bold> — find<LineBreak />
-                                        <Bold>Ctrl+S</Bold> — save now (it also saves automatically)
+                                        <Bold>Ctrl+S</Bold> — save now (it also saves automatically)<LineBreak />
+                                        <Bold>Ctrl+\</Bold> — hide or show this side panel<LineBreak />
+                                        <Bold>F11</Bold> — focus mode: just the page (Esc to leave)
                                     </TextBlock>
                                 </StackPanel>
                             </ScrollViewer>

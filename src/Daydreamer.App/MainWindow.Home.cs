@@ -23,6 +23,7 @@ public partial class MainWindow
         if (TitleBox.IsKeyboardFocused) CommitTitle();
         SaveAll();
         _completion?.Close();
+        SetFocusMode(false); // focus mode is for writing; Home always shows everything
         HideInfo();
 
         var items = BuildHomeItems();
@@ -62,7 +63,7 @@ public partial class MainWindow
     private void SetTitleBarForHome(bool home)
     {
         var writing = home ? Visibility.Collapsed : Visibility.Visible;
-        TitleBox.Visibility = ProjectLabel.Visibility = SaveIcon.Visibility = SaveStatus.Visibility = writing;
+        TitleBox.Visibility = ProjectLabel.Visibility = SaveIcon.Visibility = SaveStatus.Visibility = FocusButton.Visibility = writing;
         HomeTitle.Visibility = home ? Visibility.Visible : Visibility.Collapsed;
     }
 

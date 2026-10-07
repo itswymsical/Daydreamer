@@ -28,7 +28,8 @@ Daydreamer's way of working: plain text underneath, with formatting applied by r
 ## Pages and view
 
 - [ ] **Page numbers:** shown when printing/exporting (and maybe in the margin while writing).
-- [ ] **Full screen mode:** F11 hides the sidebars and toolbar so it's just you and the page.
+- [x] **Focus mode:** F11 (or the title bar button) hides the sidebars and toolbar so it's just you
+      and the page. The side panel can also be hidden on its own (Ctrl+\).
 
 ## Importing
 
@@ -36,6 +37,34 @@ Daydreamer's way of working: plain text underneath, with formatting applied by r
 - [x] Fonts packed inside a .docx are kept with the project.
 - [x] Speakers suggested from scripts that don't use colons.
 - [ ] Heading sizes and fonts (only the body text's look is imported so far).
+
+## Music
+
+- [x] **Music library and playlists.** Songs are copied into the library's `Music` folder; playlists,
+      crossfades, "cut in line", the title bar player and media keys.
+- [ ] **Shuffle (and repeat modes).** Shuffle would deal the playlist into a random order once and play
+      through it (so nothing repeats until everything has played). Repeat: all (as now), one, or off.
+      It fits in `MusicChannel.TakeNext`, the one place that picks the next song.
+- [ ] **Music cues for pages and scenes.** The plan:
+      - Pick a song for a `PAGE` or `SCENE` line from its right-click menu. It's stored as a hidden tag
+        on that line, like `{center}`: `{music:Scene 7 Theme}`. The text stays plain, and the tag
+        shows faintly on the line you're editing, with a small ♪ in the margin.
+      - When you reach that page or scene, the cue **cuts in line**: the channel crossfades into it
+        (`MusicChannel.PlayNow`, which already works this way) and the playlist carries on afterwards.
+      - To decide: does moving the cursor trigger a cue, scrolling, or only a "read-through" mode? Does a
+        cue play once, or loop until the next cue? Does it fade back to the playlist when you leave the
+        scene, or only when the song ends?
+
+## Proofreading
+
+- [x] **Spelling**, with Windows' own spell checker: offline, script-aware (skips names, SFX, notes and
+      markup), right-click fixes, a dictionary per story, and a mistake count that jumps to the next one.
+- [ ] **Grammar** with [Harper](https://github.com/Automattic/harper): offline, private, fast, English
+      only. It would run as a small helper program (`harper-ls`) next to Daydreamer and draw blue
+      underlines with the same right-click menu. Dialogue should be checked more gently than captions
+      and descriptions (people talk in fragments).
+- [ ] Maybe: a **"Proofread this page"** button that asks Claude about tone and dialogue (online,
+      needs an API key, costs a little per use).
 
 ## Bigger ideas from earlier
 

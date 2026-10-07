@@ -69,9 +69,25 @@ Alignment in the side panel.
 
 **Shortcuts:** type a name in CAPS to get a character pop-up · Ctrl+Space · Ctrl+B / Ctrl+I ·
 Ctrl+Shift+L / E / R / J align · Ctrl+N new document · Ctrl+F find · Ctrl+S save (it also
-autosaves). Other programs sometimes claim Ctrl+Shift shortcuts for the whole computer (AMD's
+autosaves) · Ctrl+\ hide the side panel · F11 focus mode. Other programs sometimes claim Ctrl+Shift shortcuts for the whole computer (AMD's
 Radeon software uses Ctrl+Shift+L, for example), and then they never reach Daydreamer. The
 alignment button always works.
+
+## Spelling
+
+Misspelled words get a wavy red line, like in Word or Google Docs. The checking is done by
+Windows' own spell checker, so it works offline and your writing never leaves your PC.
+
+- **Right-click** a marked word for corrections, **Ignore** (until Daydreamer closes), or **Add to
+  this story's dictionary**. That saves the word in the project, so made-up places and slang stay
+  known on any PC.
+- It understands scripts. Only the words people read are checked: dialogue, captions, descriptions,
+  headings and lists. Speaker names, PAGE and PANEL lines, SFX, notes and hidden formatting are left
+  alone. Your characters' names are always known, and words in CAPITALS (names, shouting, sound
+  words) are never marked.
+- A word isn't marked while you're still typing it, only once you've moved on.
+- The status bar shows how many mistakes there are; click it to jump to the next one.
+- Turn it off (or back on) with **Check spelling** in the right-click menu.
 
 ## Bringing text in
 
@@ -88,8 +104,29 @@ Docs or Word:
   word becomes the panel keyword.
 - Speakers are suggested from the text, ready to add as characters.
 
+## Music
+
+The **Music** tab in the side panel (or the ♪ in the title bar) is a music player for writing to.
+
+- **Add songs** copies MP3, M4A/AAC, WAV, WMA or FLAC files into Daydreamer's own `Music` folder.
+  You can also drag files, or a whole folder, onto the list. Your stories keep their music even if
+  the originals are moved or deleted, and the folder syncs with OneDrive like everything else.
+- **Playlists:** make as many as you like, and put a song in several. Right-click a song to add it to
+  one, and drag songs to reorder them. *All songs* is everything you've added.
+- Songs **crossfade** into each other. Set how long (Off to 12 seconds) at the bottom of the tab.
+- Right-click a song and pick **Cut in line now** to fade straight into it; the playlist carries on
+  after it. **Play next** waits for the current song to end instead. (Music cues for scenes will
+  cut in line the same way.)
+- While something plays, the title bar shows it with previous / pause / next buttons, and the
+  keyboard's media keys control it.
+
 ## Look and feel
 
+- **Focus mode:** the ⛶ button in the title bar, or F11. The toolbar and both panels go away so
+  it's just you and the page; Esc or F11 brings them back.
+- **Hide the side panel:** the button at the end of the toolbar, or Ctrl+\. It stays hidden next
+  time too. It comes back by itself when you ask for something in it (a character's settings,
+  a style, the Music tab).
 - **Light / dark mode:** the sun/moon button in the title bar. It follows Windows at first.
 - **Ambient mode (dark mode only):** the ★ button. Soft blue orbs of light drift up over the
   page, under the words. The motion is ported from TrelamiumIII's `GlowMote`.
@@ -109,6 +146,10 @@ src/Daydreamer.Core/        ← all the logic; no UI code, so it's easy to test 
   Analysis/DocumentStats      word/page/panel counts, lines per character
   Analysis/SpeakerFinder      spots likely speakers in scripts that don't use colons
   Storage/                    projects are folders, documents are .dream text files
+  Proofing/ScriptSpellChecker spell checking that skips names, SFX, notes and markup
+  Music/MusicStore            the Music folder: copying songs in, playlists, music.json
+  Music/MusicChannel          what plays when: the playlist, crossfades, songs cutting in line
+  Music/AudioTags             reads a song's title and artist from its MP3 tags
 
 src/Daydreamer.App/         ← the WPF desktop app
   MainWindow.xaml(.cs)        the window, documents, saving
@@ -116,6 +157,12 @@ src/Daydreamer.App/         ← the WPF desktop app
   MainWindow.Formatting.cs    the toolbar's font/size/color/spacing controls
   MainWindow.Home.cs          the Home page and its page previews
   MainWindow.Shell.cs         the custom title bar, maximize, snap layouts, theme + ambient toggles
+  MainWindow.Layout.cs        focus mode, and hiding the side panel
+  MainWindow.Spelling.cs      the wavy underlines, right-click fixes, the mistake count
+  Editor/WindowsSpellChecker  talks to Windows' spell checker (COM)
+  Editor/SpellingUnderliner   draws the wavy lines
+  MainWindow.Music.cs         the Music tab and the little player in the title bar
+  Music/                      WPF's MediaPlayer as the channel's two "decks"; measuring song lengths
   FormatTarget.cs             what the toolbar is currently editing
   Editor/ScriptColorizer      hooks the parser + resolver into the editor's drawing
   Editor/MarkupHider          hides tags, "# " and ** (live preview)
@@ -168,9 +215,12 @@ Daydreamer/
     Chapter 1.dream   your script (plain UTF-8 text)
     fonts/            fonts that came packed in imported documents
     .trash/           deleted documents (recoverable)
+  Music/              Daydreamer's copies of your songs
+    music.json        the song list (titles, artists, lengths) and your playlists
+    .trash/           deleted songs (recoverable)
 ```
 
-Settings (theme, ambient mode, window position, last open document) are in
+Settings (theme, ambient mode, music volume and crossfade, window position, last open document) are in
 `%AppData%\Daydreamer\settings.json`.
 
 ## Developer notes
@@ -178,6 +228,8 @@ Settings (theme, ambient mode, window position, last open document) are in
 - `Daydreamer.App.exe --library <folder>` opens a different library without changing your
   settings, and `--theme light|dark` forces a theme. Both are handy for testing.
 - Debug builds also accept `--screenshot out.png`, which renders the window to an image and exits.
+- The app icon (`src/Daydreamer.App/Daydreamer.ico`) is drawn from the title bar's logo by
+  `tools/MakeIcon.ps1`. Run it again if the logo changes.
 - The editor control is [AvalonEdit](https://github.com/icsharpcode/AvalonEdit). The Windows 11
   look comes from WPF's built-in Fluent theme.
 - Planned features are in [TODO.md](TODO.md).

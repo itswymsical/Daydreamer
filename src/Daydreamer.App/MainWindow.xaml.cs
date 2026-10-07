@@ -16,6 +16,7 @@ using Daydreamer.Core.Formatting;
 using Daydreamer.Core.Models;
 using Daydreamer.Core.Parsing;
 using Daydreamer.Core.Storage;
+using ICSharpCode.AvalonEdit;
 using ICSharpCode.AvalonEdit.CodeCompletion;
 using ICSharpCode.AvalonEdit.Document;
 using ICSharpCode.AvalonEdit.Search;
@@ -68,7 +69,9 @@ public partial class MainWindow : Window
         _colorizer = new ScriptColorizer(_parser);
         SetUpEditor();
         SetUpWritingTools();
+        SetUpSpelling();
         SetUpShell();
+        SetUpLayout();
         FormatControls.DataContext = _formatTarget;
 
         _autosaveTimer.Tick += (_, _) => SaveDocument();
@@ -87,6 +90,7 @@ public partial class MainWindow : Window
     private void StartUp()
     {
         _library = new Library(_settings.LibraryPath);
+        SetUpMusic(); // the music library lives in the library folder too
 
         // First launch: give the writer something to look at.
         if (_library.ListProjectFolders().Count == 0)
@@ -426,6 +430,7 @@ public partial class MainWindow : Window
     {
         if (TitleBox.IsKeyboardFocused) CommitTitle();
         RememberWindowPlacement();
+        SaveMusic(); // nothing in it is worth stopping the window closing for
         if (SaveAll()) return;
 
         e.Cancel = !PromptDialog.Confirm(this, "Daydreamer", "Some changes couldn't be saved. Close anyway?", "Close anyway");
@@ -474,6 +479,7 @@ public partial class MainWindow : Window
         UpdateKeywordLabels();
         _colorizer.Styles = _project?.Styles;
         _colorizer.Palette = palette;
+        UpdateSpellingWords(); // a new character (or a renamed one) is a known word
 
         var baseStyle = _project != null ? StyleResolver.ResolveBase(_project.Styles, palette) : StyleResolver.Start(palette.Text);
         // The editor's own font sets the height of empty lines, so it carries the line spacing too.
@@ -490,6 +496,7 @@ public partial class MainWindow : Window
     private void UpdateStats()
     {
         _statsTimer.Stop();
+        UpdateSpellingStatus();
         if (_project == null || _document == null)
         {
             StatsText.Text = "";
@@ -571,6 +578,13 @@ public partial class MainWindow : Window
 
         bool inEditor = Editor.TextArea.IsKeyboardFocusWithin;
 
+        if (e.Key == Key.F11 && Keyboard.Modifiers == ModifierKeys.None && !IsHomeShown)
+        {
+            SetFocusMode(!_focusMode);
+            e.Handled = true;
+            return;
+        }
+
         // Ctrl+Shift+L / E / R / J align the line (or the selected lines), as in Google Docs.
         if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && inEditor)
         {
@@ -609,6 +623,9 @@ public partial class MainWindow : Window
                 break;
             case Key.Space when inEditor:
                 ShowCompletionAtCaret(charactersOnly: false);
+                break;
+            case Key.Oem5 when !IsHomeShown: // Ctrl+\ (the backslash key)
+                ToggleSidePanel();
                 break;
             default:
                 return;
@@ -812,14 +829,18 @@ public partial class MainWindow : Window
     {
         var menu = Editor.ContextMenu;
         menu.Items.Clear();
+
+        // Work out where was clicked (right-clicking doesn't move the caret). Opened from the keyboard
+        // (the Menu key, or Shift+F10), it's about where the caret is.
+        bool fromKeyboard = e.CursorLeft < 0 && e.CursorTop < 0;
+        TextViewPosition? position = fromKeyboard ? Editor.TextArea.Caret.Position : Editor.GetPositionFromPoint(Mouse.GetPosition(Editor));
+        AddSpellingItems(menu, position); // a misspelled word's fixes come first, like in Word
+
         menu.Items.Add(new MenuItem { Header = "Cut", Command = ApplicationCommands.Cut, CommandTarget = Editor.TextArea });
         menu.Items.Add(new MenuItem { Header = "Copy", Command = ApplicationCommands.Copy, CommandTarget = Editor.TextArea });
         menu.Items.Add(new MenuItem { Header = "Paste", Command = ApplicationCommands.Paste, CommandTarget = Editor.TextArea });
 
         if (_project == null || _document == null) return;
-
-        // Work out which line was clicked (right-clicking doesn't move the caret).
-        var position = Editor.GetPositionFromPoint(Mouse.GetPosition(Editor));
         int lineNumber = position?.Line ?? Editor.TextArea.Caret.Line;
         var parsed = _parser.ParseLine(Editor.Document.GetText(Editor.Document.GetLineByNumber(lineNumber)));
 
@@ -844,7 +865,7 @@ public partial class MainWindow : Window
                 action = new MenuItem { Header = $"Edit the {entry.Name} style" };
                 action.Click += (_, _) =>
                 {
-                    FormattingTabs.SelectedIndex = 1;
+                    ShowSidePanelTab(StylesTab);
                     StylesList.SelectedItem = entry;
                 };
             }
@@ -855,6 +876,9 @@ public partial class MainWindow : Window
             menu.Items.Add(new Separator());
             menu.Items.Add(action);
         }
+
+        menu.Items.Add(new Separator());
+        menu.Items.Add(SpellingToggleItem());
     }
 
     // ═══════════════════════════════════════════════════════════════════════
@@ -909,7 +933,7 @@ public partial class MainWindow : Window
 
     private void SelectCharacter(Character character)
     {
-        FormattingTabs.SelectedIndex = 0;
+        ShowSidePanelTab(CharactersTab);
         CharacterList.SelectedItem = character;
         CharacterList.ScrollIntoView(character);
     }
