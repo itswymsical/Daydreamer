@@ -63,7 +63,7 @@ public partial class MainWindow
     private void SetTitleBarForHome(bool home)
     {
         var writing = home ? Visibility.Collapsed : Visibility.Visible;
-        TitleBox.Visibility = ProjectLabel.Visibility = SaveIcon.Visibility = SaveStatus.Visibility = FocusButton.Visibility = writing;
+        TitleBox.Visibility = ProjectLabel.Visibility = SaveIcon.Visibility = SaveStatus.Visibility = ExportButton.Visibility = FocusButton.Visibility = writing;
         HomeTitle.Visibility = home ? Visibility.Visible : Visibility.Collapsed;
     }
 

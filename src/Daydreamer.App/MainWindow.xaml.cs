@@ -249,7 +249,7 @@ public partial class MainWindow : Window
 
         bool hasDocument = document != null;
         TitleBox.Text = document?.Title ?? "";
-        TitleBox.IsEnabled = hasDocument;
+        TitleBox.IsEnabled = ExportButton.IsEnabled = hasDocument;
         Editor.Visibility = hasDocument ? Visibility.Visible : Visibility.Hidden;
         Paper.Visibility = Editor.Visibility;
         EmptyState.Visibility = hasDocument || _project == null ? Visibility.Collapsed : Visibility.Visible;

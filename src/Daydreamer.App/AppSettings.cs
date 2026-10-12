@@ -51,6 +51,12 @@ public sealed class AppSettings
     /// <summary>The playlist the Music tab showed last (its id). Empty means All songs.</summary>
     public string? MusicPlaylist { get; set; }
 
+    /// <summary>The folder the last export was saved in. Empty means Documents.</summary>
+    public string? ExportFolder { get; set; }
+
+    /// <summary>Whether exports include notes to yourself (// note, NOTE:). They're left out unless asked for.</summary>
+    public bool ExportNotes { get; set; }
+
     /// <summary>Where the window was when the app last closed.</summary>
     public WindowPlacement? Window { get; set; }
 

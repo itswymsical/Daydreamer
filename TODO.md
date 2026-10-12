@@ -68,5 +68,8 @@ Daydreamer's way of working: plain text underneath, with formatting applied by r
 
 ## Bigger ideas from earlier
 
-- [ ] Export to PDF / Word, using the same formatting rules so exports match the screen.
+- [x] **Export** to PDF, Word (.docx) and plain text, using the same formatting rules so exports match the
+      screen. Notes to yourself are left out unless asked for.
+- [ ] Maybe: export a whole project (every chapter in one file), and **Print** (the PDF's pages could go
+      straight to a printer).
 - [ ] Version history (e.g. git under the hood), like Google Docs' revision history.

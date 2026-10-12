@@ -96,6 +96,15 @@
                     <TextBlock x:Name="SaveIcon" Style="{StaticResource Icon}" FontSize="13" Margin="0,0,6,0"
                                Foreground="{DynamicResource MutedTextBrush}" />
                     <TextBlock x:Name="SaveStatus" FontSize="12.5" Foreground="{DynamicResource MutedTextBrush}" />
+                    <!-- Save a copy as a PDF, Word file or plain text (MainWindow.Export.cs). -->
+                    <Button x:Name="ExportButton" Style="{StaticResource FlatButton}" Margin="14,0,0,0" Click="ExportButton_Click"
+                            ToolTip="Export as a PDF, Word document or plain text" IsEnabled="False"
+                            WindowChrome.IsHitTestVisibleInChrome="True" AutomationProperties.Name="Export">
+                        <StackPanel Orientation="Horizontal">
+                            <Path Style="{StaticResource IconPath}" Data="{StaticResource IconExport}" Width="14" Height="14" Stretch="Uniform" />
+                            <TextBlock Text="Export" FontSize="12.5" Margin="6,0,0,0" />
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
 
                 <StackPanel Grid.Column="4" Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,10,0">
@@ -400,6 +409,10 @@
                                     <StackPanel.ContextMenu>
                                         <ContextMenu>
                                             <MenuItem Header="Rename" Click="RenameDocumentMenu_Click" />
+                                            <!-- Its formats are added as it opens (MainWindow.Export.cs); the empty item gives it its ▸ arrow. -->
+                                            <MenuItem Header="Export" SubmenuOpened="ExportSubmenu_Opened">
+                                                <MenuItem />
+                                            </MenuItem>
                                             <MenuItem Header="Move to trash" Click="TrashDocumentMenu_Click" />
                                         </ContextMenu>
                                     </StackPanel.ContextMenu>

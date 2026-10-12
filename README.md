@@ -104,6 +104,23 @@ Docs or Word:
   word becomes the panel keyword.
 - Speakers are suggested from the text, ready to add as characters.
 
+## Exporting
+
+The **Export** button in the title bar (or right-click a document → **Export**) saves a copy as:
+
+- **PDF**: exactly like the page in light mode, on any computer. The fonts are packed in (just the letters
+  used, including fonts in the project's `fonts` folder), and the text stays real text you can select,
+  search and copy.
+- **Word document (.docx)**: for Word, Google Docs or LibreOffice. Each kind of line becomes a Word style
+  (Dialogue, Caption, SFX, and one per character, like "Dialogue – AKIRA"), so changing the Caption style in
+  Word changes every caption. Pages and panels become Word headings (the reverse of Styles → Importing),
+  lists are real Word lists, and importing the file again gives you your pages, panels and lists back.
+- **Plain text (.txt)**: just the words as the page shows them, without hidden tags or `**`.
+
+Notes to yourself are left out unless you tick **Include notes to yourself** in the menu. The paper is
+Letter or A4 (whichever is usual where your computer is set up), with 1-inch margins. A Word file names its
+fonts but doesn't pack them in, so a computer without them shows a stand-in font; a PDF always has them.
+
 ## Music
 
 The **Music** tab in the side panel (or the ♪ in the title bar) is a music player for writing to.
@@ -143,6 +160,9 @@ src/Daydreamer.Core/        ← all the logic; no UI code, so it's easy to test 
   Formatting/ThemePalette     the light and dark grays used when no color is chosen
   Editing/                    the line menu (LineConverter), lists, indents, alignment tags
   Import/                     .docx and clipboard HTML → script text, fonts and spacing
+  Export/ExportDocument       a document worked out for paper: every line's words and looks, markup gone
+  Export/DocxExporter         … written as a Word file (styles per kind of line, real lists)
+  Export/TextExporter         … or as plain text
   Analysis/DocumentStats      word/page/panel counts, lines per character
   Analysis/SpeakerFinder      spots likely speakers in scripts that don't use colons
   Storage/                    projects are folders, documents are .dream text files
@@ -159,6 +179,9 @@ src/Daydreamer.App/         ← the WPF desktop app
   MainWindow.Shell.cs         the custom title bar, maximize, snap layouts, theme + ambient toggles
   MainWindow.Layout.cs        focus mode, and hiding the side panel
   MainWindow.Spelling.cs      the wavy underlines, right-click fixes, the mistake count
+  MainWindow.Export.cs        the Export menu: asks where to save, then writes the file
+  Export/PageLayout           puts an exported document on pages with WPF's text engine
+  Export/PdfWriter, PdfFont   turns those pages into a PDF, packing in the fonts
   Editor/WindowsSpellChecker  talks to Windows' spell checker (COM)
   Editor/SpellingUnderliner   draws the wavy lines
   MainWindow.Music.cs         the Music tab and the little player in the title bar
@@ -197,6 +220,15 @@ never gets corrupted by a formatting bug, and works well with OneDrive and versi
 WPF decides how tall a line is from its font, so `WpfStyles.Family` wraps the real font in a
 **composite font**. It draws exactly the same letters but reports taller lines, with the text
 centred in the extra space. Because it's part of the font, wrapped lines get the spacing too.
+
+### How PDF export works
+
+There's no PDF library: WPF already does the hard parts. `PageLayout` breaks each line into rows with
+`TextFormatter` (the engine the editor itself draws with, so wrapping, spacing and stand-in fonts for Japanese
+match the screen) and draws every page into a WPF `Drawing`. `PdfWriter` then walks each drawing: a run of
+letters becomes a PDF text instruction that names glyphs by number, and an underline becomes a filled shape.
+Each font is packed in by `GlyphTypeface.ComputeSubset` (WPF's own subsetter, which keeps just the letters
+used), along with a small table of which character each glyph is, so text copied from the PDF comes out right.
 
 ### How the ambient lights glow
 
