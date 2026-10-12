@@ -42,6 +42,7 @@ public sealed class ScriptColorizer : DocumentColorizingTransformer
             var brush = WpfStyles.TextBrush(segment.Style.Color, Palette);
             double size = WpfStyles.PointsToPixels(segment.Style.FontSize);
             var decorations = segment.IsWarning ? WpfStyles.WarningUnderline(Palette)
+                : segment.IsCompleted ? WpfStyles.Strikethrough // a ticked checklist item
                 : segment.Style.Underline ? WpfStyles.Underline
                 : WpfStyles.NoDecorations;
 

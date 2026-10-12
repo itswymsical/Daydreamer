@@ -18,18 +18,18 @@ public sealed partial class DocumentStats
     /// <summary>Dialogue lines per defined character.</summary>
     public IReadOnlyDictionary<Character, int> LinesByCharacter { get; private init; } = new Dictionary<Character, int>();
 
-    /// <summary>Names used as speakers that haven't been added as characters yet.</summary>
+    /// <summary>Names that look like speakers but haven't been added as characters yet, most lines first.</summary>
     public IReadOnlyList<string> UnknownSpeakers { get; private init; } = [];
 
     public static DocumentStats Analyze(string text, ScriptParser parser)
     {
         int words = 0, pages = 0, panels = 0, dialogue = 0;
         var byCharacter = new Dictionary<Character, int>();
-        var unknown = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
 
-        foreach (var raw in ScriptParser.SplitLines(text))
+        // Parsed once, and shared with the speaker finder.
+        var parsed = ScriptParser.SplitLines(text).Select(raw => (Raw: raw, Line: parser.ParseLine(raw))).ToList();
+        foreach (var (raw, line) in parsed)
         {
-            var line = parser.ParseLine(raw);
             switch (line.Type)
             {
                 case ElementType.Blank or ElementType.Note:
@@ -44,8 +44,6 @@ public sealed partial class DocumentStats
                     dialogue++;
                     if (line.Character != null)
                         byCharacter[line.Character] = byCharacter.GetValueOrDefault(line.Character) + 1;
-                    else if (line.Speaker != null)
-                        unknown.Add(line.Speaker);
                     break;
             }
 
@@ -60,7 +58,7 @@ public sealed partial class DocumentStats
             Panels = panels,
             DialogueLines = dialogue,
             LinesByCharacter = byCharacter,
-            UnknownSpeakers = [.. unknown],
+            UnknownSpeakers = [.. SpeakerFinder.Find(parsed, parser).Select(s => s.Name)],
         };
     }
 

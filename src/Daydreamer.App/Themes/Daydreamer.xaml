@@ -9,6 +9,36 @@
 
     <FontFamily x:Key="IconFont">Segoe Fluent Icons, Segoe MDL2 Assets</FontFamily>
 
+    <!-- ── Toolbar icons, drawn as 16×16 line drawings so they look the same on every PC ── -->
+    <Style x:Key="IconPath" TargetType="Path">
+        <Setter Property="Width" Value="16" />
+        <Setter Property="Height" Value="16" />
+        <Setter Property="Stroke" Value="{DynamicResource TextBrush}" />
+        <Setter Property="StrokeThickness" Value="1.3" />
+        <Setter Property="StrokeStartLineCap" Value="Round" />
+        <Setter Property="StrokeEndLineCap" Value="Round" />
+        <Setter Property="StrokeLineJoin" Value="Round" />
+    </Style>
+    <Geometry x:Key="IconLineSpacing">M3.5,2.5 L3.5,13.5 M1.5,4.5 L3.5,2.5 L5.5,4.5 M1.5,11.5 L3.5,13.5 L5.5,11.5 M8,3.5 L15,3.5 M8,8 L15,8 M8,12.5 L15,12.5</Geometry>
+    <Geometry x:Key="IconAlignLeft">M2,3.5 L14,3.5 M2,6.5 L10,6.5 M2,9.5 L14,9.5 M2,12.5 L10,12.5</Geometry>
+    <Geometry x:Key="IconAlignCenter">M2,3.5 L14,3.5 M4,6.5 L12,6.5 M2,9.5 L14,9.5 M4,12.5 L12,12.5</Geometry>
+    <Geometry x:Key="IconAlignRight">M2,3.5 L14,3.5 M6,6.5 L14,6.5 M2,9.5 L14,9.5 M6,12.5 L14,12.5</Geometry>
+    <Geometry x:Key="IconAlignJustify">M2,3.5 L14,3.5 M2,6.5 L14,6.5 M2,9.5 L14,9.5 M2,12.5 L14,12.5</Geometry>
+    <Geometry x:Key="IconBulletList">M1.6,3.5 A0.9,0.9 0 1 1 3.4,3.5 A0.9,0.9 0 1 1 1.6,3.5 M1.6,8 A0.9,0.9 0 1 1 3.4,8 A0.9,0.9 0 1 1 1.6,8 M1.6,12.5 A0.9,0.9 0 1 1 3.4,12.5 A0.9,0.9 0 1 1 1.6,12.5 M6,3.5 L14.5,3.5 M6,8 L14.5,8 M6,12.5 L14.5,12.5</Geometry>
+    <Geometry x:Key="IconNumberList">M1.8,2.8 L3,2 L3,6 M1.6,9.4 C1.9,8.4 4.3,8.4 3.8,10 L1.6,12.6 L4.2,12.6 M6.5,4 L14.5,4 M6.5,10.5 L14.5,10.5</Geometry>
+    <Geometry x:Key="IconChecklist">M1.5,2 L5.5,2 L5.5,6 L1.5,6 Z M2.4,4.1 L3.3,5 L4.8,3 M1.5,10 L5.5,10 L5.5,14 L1.5,14 Z M8,4 L14.5,4 M8,12 L14.5,12</Geometry>
+    <Geometry x:Key="IconOutdent">M6.5,3.5 L14.5,3.5 M9,8 L14.5,8 M6.5,12.5 L14.5,12.5 M6,8 L1.5,8 M3.4,6.1 L1.5,8 L3.4,9.9</Geometry>
+    <Geometry x:Key="IconIndent">M6.5,3.5 L14.5,3.5 M9,8 L14.5,8 M6.5,12.5 L14.5,12.5 M1.5,8 L6,8 M4.1,6.1 L6,8 L4.1,9.9</Geometry>
+    <Geometry x:Key="IconClearFormatting">M2.5,3 L10.5,3 M6.5,3 L6.5,13 M10.5,9.5 L14.5,13.5 M14.5,9.5 L10.5,13.5</Geometry>
+    <Geometry x:Key="IconImport">M8,1.5 L8,9.5 M5,6.5 L8,9.5 L11,6.5 M2.5,10.5 L2.5,14 L13.5,14 L13.5,10.5</Geometry>
+    <!-- Import's arrow turned around: out of the tray. -->
+    <Geometry x:Key="IconExport">M8,9.5 L8,1.5 M5,4.5 L8,1.5 L11,4.5 M2.5,10.5 L2.5,14 L13.5,14 L13.5,10.5</Geometry>
+    <!-- A window with a panel down its right side / with the panel tucked away (just the edge showing). -->
+    <Geometry x:Key="IconSidePanel">M2,3 L14,3 L14,13 L2,13 Z M9.5,3 L9.5,13 M11,6 L12.5,6 M11,8 L12.5,8</Geometry>
+    <Geometry x:Key="IconSidePanelHidden">M2,3 L14,3 L14,13 L2,13 Z M12,3 L12,13</Geometry>
+    <!-- The corners of a viewfinder: focus on what's in the middle. -->
+    <Geometry x:Key="IconFocus">M2,5.5 L2,2 L5.5,2 M10.5,2 L14,2 L14,5.5 M14,10.5 L14,14 L10.5,14 M5.5,14 L2,14 L2,10.5</Geometry>
+
     <!-- ── Text ──────────────────────────────────────────────────────────── -->
     <Style x:Key="SectionHeader" TargetType="TextBlock">
         <Setter Property="FontSize" Value="11" />
@@ -197,6 +227,8 @@
     <!-- Simple underlined tabs for the right-hand panel. -->
     <Style x:Key="PanelTab" TargetType="TabItem">
         <Setter Property="Cursor" Value="Hand" />
+        <!-- A tab's content takes its text color from the tab (otherwise plain text there is black, even in dark mode). -->
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="TabItem">
@@ -235,6 +267,37 @@
                         <!-- This exact name lets accessibility tools (screen readers) see the tab's content. -->
                         <ContentPresenter x:Name="PART_SelectedContentHost" ContentSource="SelectedContent" />
                     </DockPanel>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- A clickable tile on the Home page: a recent document, or "start something new". -->
+    <Style x:Key="HomeCard" TargetType="Button">
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Margin" Value="0,0,18,18" />
+        <Setter Property="Padding" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="Card" Background="{DynamicResource PaperBrush}" BorderBrush="{DynamicResource DividerBrush}"
+                            BorderThickness="1" CornerRadius="10" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Card" Property="BorderBrush" Value="{DynamicResource AccentBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Card" Property="Background" Value="{DynamicResource HoverBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>

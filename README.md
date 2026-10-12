@@ -19,27 +19,39 @@ On first launch it creates a sample project, **My First Manga**, in
 
 ## Writing syntax
 
-| You type                      | It becomes                                                        |
-| ----------------------------- | ----------------------------------------------------------------- |
-| `# Chapter 1`                 | Heading                                                           |
-| `PAGE 1`                      | Page marker                                                       |
-| `PANEL 1`                     | Panel marker                                                      |
-| `AKIRA: Hello.`               | Dialogue, in AKIRA's style                                        |
-| `AKIRA (thought): Hmm.`       | Dialogue + a modifier rule (thought → italic)                     |
-| `CAPTION: Tokyo, 2045.`       | Caption (bold by default)                                         |
-| `CAPTION (AKIRA): I remember` | Caption in AKIRA's font                                           |
-| `SFX: KRAKOOM`                | Sound effect (italic by default)                                  |
-| `// note`                     | Note to yourself (faded, not counted)                             |
-| `**bold**` / `*italic*`       | Inline emphasis                                                   |
-| anything else                 | Description / prose                                               |
+| You type                          | It becomes                                                   |
+| --------------------------------- | ------------------------------------------------------------ |
+| `AKIRA Hello.` or `AKIRA: Hello.` | Dialogue, in AKIRA's style (a defined character, in capitals) |
+| `**AKIRA** Hello.`                | Also dialogue: a bold name counts too                        |
+| `AKIRA (thought) Hmm.`            | Dialogue + a modifier rule (thought → italic)                |
+| `PAGE 1` / `PANEL 1`              | Page and panel markers                                       |
+| `CAPTION Tokyo, 2045.`            | Caption (bold by default). `CAPTION:` and `CAPTION 2` work too |
+| `CAPTION (AKIRA): I remember`     | Caption in AKIRA's font                                      |
+| `SFX KRAKOOM`                     | Sound effect (italic by default). `SFX:` and `FX` work too   |
+| `// note`                         | Note to yourself (faded, not counted)                        |
+| `# Chapter 1`                     | Heading                                                      |
+| `**bold**` / `*italic*`           | Inline emphasis                                              |
+| `- item`, `1. item`, `[ ] task`   | Bulleted, numbered and checklist lines                       |
+| anything else                     | Description / prose                                          |
 
-An undefined name in ALL CAPS (`STRANGER: ...`) still counts as dialogue, but gets an orange
-dotted underline. Right-click the line, or click the name in the Characters panel, to add them.
+You don't have to type any of that, though: the **line menu** at the left of the toolbar
+("Description ▾", like Google Docs' "Normal text ▾") sets a line's kind directly. It stores the
+choice in a small tag at the start of the line, like `{caption}`, that the editor never shows.
+Alignment is stored the same way (`{center}`). The `#`, `!` and `**` you type yourself show
+faintly only on the line you're editing, so the page reads like a finished script.
+
+**Keywords** can be renamed per project in Styles → Keywords. A script that says `SCENE 3`
+instead of `PANEL 3` just renames the panel keyword, and the whole app follows. Toolbar buttons,
+menus, the status bar and the style list all say "Scene". The built-in words keep working too.
+
+An undefined name in ALL CAPS with a colon (`STRANGER: ...`) still counts as dialogue, with an
+orange dotted underline. Names that start lots of lines *without* a colon (`KAITO It's late.`)
+are suggested in the Characters panel, and **Add all** adds them in one go.
 
 ## Formatting
 
 You don't format words one by one; you format **kinds of lines**. Put the cursor on a line and
-use the toolbar's **font, size, color and line spacing**. The pill on the left of those controls
+use the toolbar's **font, size, color and spacing**. The pill on the left of those controls
 shows what you're changing:
 
 - On an AKIRA line, it's **AKIRA**: every AKIRA line changes.
@@ -50,11 +62,88 @@ Click the pill to open that style's full settings in the side panel. Text is gra
 and follows light/dark mode. Color is optional, and colors you pick are automatically nudged
 to stay readable on the page.
 
+The spacing button sets **line spacing** and **space between paragraphs** (like Docs' "add space
+before paragraph"). **Alignment** works like a word processor instead: it applies to the line
+the cursor is on, or the selected lines. To center *every* caption, use the Caption style's
+Alignment in the side panel.
+
 **Shortcuts:** type a name in CAPS to get a character pop-up · Ctrl+Space · Ctrl+B / Ctrl+I ·
-Ctrl+N new document · Ctrl+F find · Ctrl+S save (it also autosaves).
+Ctrl+Shift+L / E / R / J align · Ctrl+N new document · Ctrl+F find · Ctrl+S save (it also
+autosaves) · Ctrl+\ hide the side panel · F11 focus mode. Other programs sometimes claim Ctrl+Shift shortcuts for the whole computer (AMD's
+Radeon software uses Ctrl+Shift+L, for example), and then they never reach Daydreamer. The
+alignment button always works.
+
+## Spelling
+
+Misspelled words get a wavy red line, like in Word or Google Docs. The checking is done by
+Windows' own spell checker, so it works offline and your writing never leaves your PC.
+
+- **Right-click** a marked word for corrections, **Ignore** (until Daydreamer closes), or **Add to
+  this story's dictionary**. That saves the word in the project, so made-up places and slang stay
+  known on any PC.
+- It understands scripts. Only the words people read are checked: dialogue, captions, descriptions,
+  headings and lists. Speaker names, PAGE and PANEL lines, SFX, notes and hidden formatting are left
+  alone. Your characters' names are always known, and words in CAPITALS (names, shouting, sound
+  words) are never marked.
+- A word isn't marked while you're still typing it, only once you've moved on.
+- The status bar shows how many mistakes there are; click it to jump to the next one.
+- Turn it off (or back on) with **Check spelling** in the right-click menu.
+
+## Bringing text in
+
+Import a `.docx` (Word or Google Docs) from the documents list or the Home page, or paste from
+Docs or Word:
+
+- Headings become pages, panels and so on (Styles → Importing & pasting). Heading 1 is a page,
+  Heading 4 a panel.
+- Lists, bold and italic come along, and centered or right-aligned lines stay that way.
+- An imported document's **font, size, line spacing and paragraph spacing** become the
+  project's, with an Undo button. Fonts packed inside the `.docx` (Google Docs does this) are
+  saved into the project's `fonts` folder, so they work even if they aren't installed.
+- If the document's panel headings all start with another word (`SCENE 1`, `SCENE 2`), that
+  word becomes the panel keyword.
+- Speakers are suggested from the text, ready to add as characters.
+
+## Exporting
+
+The **Export** button in the title bar (or right-click a document → **Export**) saves a copy as:
+
+- **PDF**: exactly like the page in light mode, on any computer. The fonts are packed in (just the letters
+  used, including fonts in the project's `fonts` folder), and the text stays real text you can select,
+  search and copy.
+- **Word document (.docx)**: for Word, Google Docs or LibreOffice. Each kind of line becomes a Word style
+  (Dialogue, Caption, SFX, and one per character, like "Dialogue – AKIRA"), so changing the Caption style in
+  Word changes every caption. Pages and panels become Word headings (the reverse of Styles → Importing),
+  lists are real Word lists, and importing the file again gives you your pages, panels and lists back.
+- **Plain text (.txt)**: just the words as the page shows them, without hidden tags or `**`.
+
+Notes to yourself are left out unless you tick **Include notes to yourself** in the menu. The paper is
+Letter or A4 (whichever is usual where your computer is set up), with 1-inch margins. A Word file names its
+fonts but doesn't pack them in, so a computer without them shows a stand-in font; a PDF always has them.
+
+## Music
+
+The **Music** tab in the side panel (or the ♪ in the title bar) is a music player for writing to.
+
+- **Add songs** copies MP3, M4A/AAC, WAV, WMA or FLAC files into Daydreamer's own `Music` folder.
+  You can also drag files, or a whole folder, onto the list. Your stories keep their music even if
+  the originals are moved or deleted, and the folder syncs with OneDrive like everything else.
+- **Playlists:** make as many as you like, and put a song in several. Right-click a song to add it to
+  one, and drag songs to reorder them. *All songs* is everything you've added.
+- Songs **crossfade** into each other. Set how long (Off to 12 seconds) at the bottom of the tab.
+- Right-click a song and pick **Cut in line now** to fade straight into it; the playlist carries on
+  after it. **Play next** waits for the current song to end instead. (Music cues for scenes will
+  cut in line the same way.)
+- While something plays, the title bar shows it with previous / pause / next buttons, and the
+  keyboard's media keys control it.
 
 ## Look and feel
 
+- **Focus mode:** the ⛶ button in the title bar, or F11. The toolbar and both panels go away so
+  it's just you and the page; Esc or F11 brings them back.
+- **Hide the side panel:** the button at the end of the toolbar, or Ctrl+\. It stays hidden next
+  time too. It comes back by itself when you ask for something in it (a character's settings,
+  a style, the Music tab).
 - **Light / dark mode:** the sun/moon button in the title bar. It follows Windows at first.
 - **Ambient mode (dark mode only):** the ★ button. Soft blue orbs of light drift up over the
   page, under the words. The motion is ported from TrelamiumIII's `GlowMote`.
@@ -65,23 +154,50 @@ Ctrl+N new document · Ctrl+F find · Ctrl+S save (it also autosaves).
 
 ```
 src/Daydreamer.Core/        ← all the logic; no UI code, so it's easy to test and reuse
-  Models/                     Character, TextStyle, StyleSheet, Project
+  Models/                     Character, TextStyle, StyleSheet, Keywords, Project
   Parsing/ScriptParser.cs     reads one line → "this is AKIRA's dialogue, modifier 'thought'"
   Formatting/StyleResolver    stacks styles: theme gray → Default → element → character → modifier
   Formatting/ThemePalette     the light and dark grays used when no color is chosen
+  Editing/                    the line menu (LineConverter), lists, indents, alignment tags
+  Import/                     .docx and clipboard HTML → script text, fonts and spacing
+  Export/ExportDocument       a document worked out for paper: every line's words and looks, markup gone
+  Export/DocxExporter         … written as a Word file (styles per kind of line, real lists)
+  Export/TextExporter         … or as plain text
   Analysis/DocumentStats      word/page/panel counts, lines per character
+  Analysis/SpeakerFinder      spots likely speakers in scripts that don't use colons
   Storage/                    projects are folders, documents are .dream text files
+  Proofing/ScriptSpellChecker spell checking that skips names, SFX, notes and markup
+  Music/MusicStore            the Music folder: copying songs in, playlists, music.json
+  Music/MusicChannel          what plays when: the playlist, crossfades, songs cutting in line
+  Music/AudioTags             reads a song's title and artist from its MP3 tags
 
 src/Daydreamer.App/         ← the WPF desktop app
   MainWindow.xaml(.cs)        the window, documents, saving
-  MainWindow.Formatting.cs    the toolbar's font/size/color/line spacing controls
+  MainWindow.Writing.cs       line menu, alignment, lists, hidden tags, paste and import
+  MainWindow.Formatting.cs    the toolbar's font/size/color/spacing controls
+  MainWindow.Home.cs          the Home page and its page previews
   MainWindow.Shell.cs         the custom title bar, maximize, snap layouts, theme + ambient toggles
+  MainWindow.Layout.cs        focus mode, and hiding the side panel
+  MainWindow.Spelling.cs      the wavy underlines, right-click fixes, the mistake count
+  MainWindow.Export.cs        the Export menu: asks where to save, then writes the file
+  Export/PageLayout           puts an exported document on pages with WPF's text engine
+  Export/PdfWriter, PdfFont   turns those pages into a PDF, packing in the fonts
+  Editor/WindowsSpellChecker  talks to Windows' spell checker (COM)
+  Editor/SpellingUnderliner   draws the wavy lines
+  MainWindow.Music.cs         the Music tab and the little player in the title bar
+  Music/                      WPF's MediaPlayer as the channel's two "decks"; measuring song lengths
   FormatTarget.cs             what the toolbar is currently editing
   Editor/ScriptColorizer      hooks the parser + resolver into the editor's drawing
-  Editor/WpfStyles            fonts, colors, readable-color adjustment, line spacing fonts
+  Editor/MarkupHider          hides tags, "# " and ** (live preview)
+  Editor/ListMarkerGenerator  draws bullets and clickable checkboxes
+  Editor/WpfStyles            fonts (incl. project fonts), colors, line spacing fonts
   Theming/ThemeManager        swaps light/dark (Themes/Light.xaml ↔ Themes/Dark.xaml)
   Ambient/                    the drifting lights (GlowMote, OrbSprites, AmbientField)
-  Controls/                   StyleEditor, ColorPicker
+  Controls/                   StyleEditor, ColorPicker, DocumentPreview
+
+third-party/AvalonEdit/     ← the editor control, as source (MIT), with small marked changes
+                              ("Daydreamer:") for per-line alignment, list indents and
+                              paragraph spacing
 
 tests/                      ← `dotnet test` runs both projects
 ```
@@ -105,6 +221,15 @@ WPF decides how tall a line is from its font, so `WpfStyles.Family` wraps the re
 **composite font**. It draws exactly the same letters but reports taller lines, with the text
 centred in the extra space. Because it's part of the font, wrapped lines get the spacing too.
 
+### How PDF export works
+
+There's no PDF library: WPF already does the hard parts. `PageLayout` breaks each line into rows with
+`TextFormatter` (the engine the editor itself draws with, so wrapping, spacing and stand-in fonts for Japanese
+match the screen) and draws every page into a WPF `Drawing`. `PdfWriter` then walks each drawing: a run of
+letters becomes a PDF text instruction that names glyphs by number, and an underline becomes a filled shape.
+Each font is packed in by `GlyphTypeface.ComputeSubset` (WPF's own subsetter, which keeps just the letters
+used), along with a small table of which character each glyph is, so text copied from the PDF comes out right.
+
 ### How the ambient lights glow
 
 Each orb is a small pre-drawn image (like a texture in a game). The images are turned into
@@ -118,12 +243,16 @@ every frame (about 20% of a CPU core), while the baked images cost about 4%.
 ```
 Daydreamer/
   My First Manga/
-    project.json      characters + style rules
+    project.json      characters, style rules, keywords
     Chapter 1.dream   your script (plain UTF-8 text)
+    fonts/            fonts that came packed in imported documents
     .trash/           deleted documents (recoverable)
+  Music/              Daydreamer's copies of your songs
+    music.json        the song list (titles, artists, lengths) and your playlists
+    .trash/           deleted songs (recoverable)
 ```
 
-Settings (theme, ambient mode, window position, last open document) are in
+Settings (theme, ambient mode, music volume and crossfade, window position, last open document) are in
 `%AppData%\Daydreamer\settings.json`.
 
 ## Developer notes
@@ -131,6 +260,8 @@ Settings (theme, ambient mode, window position, last open document) are in
 - `Daydreamer.App.exe --library <folder>` opens a different library without changing your
   settings, and `--theme light|dark` forces a theme. Both are handy for testing.
 - Debug builds also accept `--screenshot out.png`, which renders the window to an image and exits.
+- The app icon (`src/Daydreamer.App/Daydreamer.ico`) is drawn from the title bar's logo by
+  `tools/MakeIcon.ps1`. Run it again if the logo changes.
 - The editor control is [AvalonEdit](https://github.com/icsharpcode/AvalonEdit). The Windows 11
   look comes from WPF's built-in Fluent theme.
 - Planned features are in [TODO.md](TODO.md).

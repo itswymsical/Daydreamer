@@ -52,14 +52,14 @@ public partial class MainWindow
                 SelectCharacter(character);
                 break;
             case StyleEntry entry:
-                FormattingTabs.SelectedIndex = 1;
+                ShowSidePanelTab(StylesTab);
                 StylesList.SelectedItem = entry;
                 StylesList.ScrollIntoView(entry);
                 break;
         }
     }
 
-    /// <summary>The line spacing menu: Single, 1.15, 1.5, Double, or a number of your own.</summary>
+    /// <summary>The spacing menu: line spacing (Single, 1.15, 1.5, Double, or your own) and space between paragraphs.</summary>
     private void LineSpacingButton_Click(object sender, RoutedEventArgs e)
     {
         if (_formatTarget.LineSpacing is not { } current) return;
@@ -79,10 +79,29 @@ public partial class MainWindow
             menu.Items.Add(item);
         }
 
-        menu.Items.Add(new Separator());
         var custom = new MenuItem { Header = "Custom…" };
         custom.Click += (_, _) => AskForLineSpacing(current);
         menu.Items.Add(custom);
+
+        // Space between paragraphs (like Docs' "Add space before paragraph"), for the same kind of line.
+        menu.Items.Add(new Separator());
+        menu.Items.Add(new MenuItem { Header = "Space between paragraphs", IsEnabled = false });
+        double currentGap = _formatTarget.SpaceBefore ?? 0;
+        foreach (double gap in FontList.ParagraphSpacings)
+        {
+            var item = new MenuItem
+            {
+                Header = gap == 0 ? "None" : $"{gap:0} pt",
+                IsCheckable = true,
+                IsChecked = Math.Abs(currentGap - gap) < 0.01,
+            };
+            item.Click += (_, _) =>
+            {
+                _formatTarget.SpaceBefore = gap;
+                Editor.Focus();
+            };
+            menu.Items.Add(item);
+        }
 
         menu.IsOpen = true;
     }
@@ -138,6 +157,7 @@ public partial class MainWindow
         ApplyEditorTheme();
         ApplyFormatting();
         CharacterList.Items.Refresh(); // re-run the name-color converters against the new page color
+        if (IsHomeShown) RecentList.ItemsSource = BuildHomeItems(); // redraw the page previews in the new colors
         UpdateAmbient();
         UpdateShellButtons();
     }

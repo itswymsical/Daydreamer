@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    AvalonEdit 6.3.1 (https://github.com/icsharpcode/AvalonEdit, MIT licence — see ../LICENSE),
+    included as source so Daydreamer can add paragraph features the published package doesn't have.
+    Daydreamer's changes are marked with "Daydreamer:" comments. The project file was simplified
+    to build only for Daydreamer's .NET version, without NuGet packaging or strong-name signing.
+  -->
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <DefineConstants>TRACE</DefineConstants>
+    <Version>6.3.1</Version>
+    <AssemblyVersion>6.3.1.0</AssemblyVersion>
+    <FileVersion>6.3.1.0</FileVersion>
+    <!-- Third-party code: don't flood the build with its style warnings. -->
+    <WarningLevel>0</WarningLevel>
+    <NoWarn>$(NoWarn);CS0618;CS1591;CS1573;CA1416;SYSLIB0003;SYSLIB0011;SYSLIB0050;SYSLIB0051;WFO1000</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Search\next.png" />
+    <None Remove="Search\prev.png" />
+    <None Remove="themes\RightArrow.cur" />
+    <None Remove="AvalonEditNuGetPackageIcon.png" />
+    <None Remove="ICSharpCode.AvalonEdit.snk" />
+    <Resource Include="Search\next.png" />
+    <Resource Include="Search\prev.png" />
+    <Resource Include="themes\RightArrow.cur" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="Highlighting\Resources\*" />
+    <EmbeddedResource Include="Highlighting\Resources\*" />
+    <EmbeddedResource Remove="Highlighting\Resources\Resources.cs" />
+    <Resource Include="Highlighting\Resources\Resources.cs" />
+  </ItemGroup>
+</Project>

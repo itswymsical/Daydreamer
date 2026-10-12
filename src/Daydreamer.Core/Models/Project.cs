@@ -13,11 +13,30 @@ public sealed class Project : ObservableObject
 {
     private ObservableCollection<Character> _characters = [];
     private StyleSheet _styles = StyleSheet.CreateDefault();
+    private HeadingMap _importHeadings = new();
+    private Keywords _keywords = new();
+    private ObservableCollection<string> _knownWords = [];
 
     public Project()
     {
+        _knownWords.CollectionChanged += OnKnownWordsChanged;
         _characters.CollectionChanged += OnCharactersChanged;
         _styles.PropertyChanged += OnStylesChanged;
+        _importHeadings.PropertyChanged += OnStylesChanged;
+        _keywords.PropertyChanged += OnStylesChanged;
+    }
+
+    /// <summary>The words that start special lines (PAGE, PANEL, CAPTION, SFX, NOTE) in this project.</summary>
+    public Keywords Keywords
+    {
+        get => _keywords;
+        set
+        {
+            _keywords.PropertyChanged -= OnStylesChanged;
+            _keywords = value ?? new Keywords();
+            _keywords.PropertyChanged += OnStylesChanged;
+            OnPropertyChanged();
+        }
     }
 
     /// <summary>The project.json format this code writes. See <c>ProjectUpgrades</c> for what changed.</summary>
@@ -49,6 +68,39 @@ public sealed class Project : ObservableObject
             _styles.PropertyChanged -= OnStylesChanged;
             _styles = value ?? StyleSheet.CreateDefault();
             _styles.PropertyChanged += OnStylesChanged;
+            OnPropertyChanged();
+        }
+    }
+
+    /// <summary>
+    /// Words this story uses that the spell checker shouldn't underline: made-up places, slang, sounds
+    /// ("Neo-Kyoto", "gonna"). Character names never need adding; they're always known.
+    /// </summary>
+    public ObservableCollection<string> KnownWords
+    {
+        get => _knownWords;
+        set
+        {
+            _knownWords.CollectionChanged -= OnKnownWordsChanged;
+            _knownWords = value ?? [];
+            _knownWords.CollectionChanged += OnKnownWordsChanged;
+            OnPropertyChanged();
+        }
+    }
+
+    // A new word changes which words are underlined (and needs saving), like a formatting change.
+    private void OnKnownWordsChanged(object? sender, NotifyCollectionChangedEventArgs e) =>
+        FormattingChanged?.Invoke(this, EventArgs.Empty);
+
+    /// <summary>What Google Docs / Word headings become when importing or pasting.</summary>
+    public HeadingMap ImportHeadings
+    {
+        get => _importHeadings;
+        set
+        {
+            _importHeadings.PropertyChanged -= OnStylesChanged;
+            _importHeadings = value ?? new HeadingMap();
+            _importHeadings.PropertyChanged += OnStylesChanged;
             OnPropertyChanged();
         }
     }

@@ -11,7 +11,9 @@ public readonly record struct ResolvedStyle(
     bool Italic,
     bool Underline,
     string Color,
-    double LineSpacing);
+    double LineSpacing,
+    TextAlign Alignment,
+    double SpaceBefore = 0);
 
 public enum SegmentRole
 {
@@ -25,8 +27,11 @@ public enum SegmentRole
     Marker,
 }
 
-/// <summary>A piece of a line and exactly how to draw it.</summary>
-public sealed record StyledSegment(TextRange Range, ResolvedStyle Style, SegmentRole Role, bool IsWarning = false);
+/// <summary>
+/// A piece of a line and exactly how to draw it. <see cref="IsWarning"/> marks a speaker who isn't a
+/// character yet; <see cref="IsCompleted"/> marks the text of a ticked checklist item (drawn struck through).
+/// </summary>
+public sealed record StyledSegment(TextRange Range, ResolvedStyle Style, SegmentRole Role, bool IsWarning = false, bool IsCompleted = false);
 
 /// <summary>
 /// Decides how every part of a line should look by stacking style layers:
@@ -39,7 +44,7 @@ public static class StyleResolver
     private const double FallbackSize = 12;
 
     /// <summary>The bottom layer: a plain, single-spaced font in the given theme color.</summary>
-    public static ResolvedStyle Start(string color) => new(FallbackFont, FallbackSize, false, false, false, color, 1.0);
+    public static ResolvedStyle Start(string color) => new(FallbackFont, FallbackSize, false, false, false, color, 1.0, TextAlign.Left);
 
     /// <summary>Stacks layers in order on top of <paramref name="start"/>; later layers win wherever they set a value.</summary>
     public static ResolvedStyle Merge(ResolvedStyle start, params TextStyle?[] layers)
@@ -57,6 +62,8 @@ public static class StyleResolver
                 Underline = layer.Underline ?? result.Underline,
                 Color = layer.Color ?? result.Color,
                 LineSpacing = layer.LineSpacing ?? result.LineSpacing,
+                Alignment = layer.Alignment ?? result.Alignment,
+                SpaceBefore = layer.SpaceBefore ?? result.SpaceBefore,
             };
         }
         return result;
@@ -82,7 +89,10 @@ public static class StyleResolver
             layers.Add(line.Character.Style);
         if (line.Type == ElementType.Dialogue)
             layers.AddRange(sheet.MatchModifiers(line.Modifier).Select(m => m.Style));
-        return Merge(Start(palette.ToneFor(line.Type)), [.. layers]);
+        var resolved = Merge(Start(palette.ToneFor(line.Type)), [.. layers]);
+
+        // A line's own alignment (from its {tag}) wins over its style's.
+        return line.Alignment is { } alignment ? resolved with { Alignment = alignment } : resolved;
     }
 
     /// <summary>Splits a line into styled pieces, ready to be drawn. Later segments override earlier ones.</summary>
@@ -96,8 +106,12 @@ public static class StyleResolver
         // 1. Paint the whole line in the body style so spacing and line height are consistent.
         segments.Add(new StyledSegment(new TextRange(0, lineLength), body, SegmentRole.Body));
 
-        // 2. The label ("AKIRA:", "SFX:", "# ").
-        if (!line.Label.IsEmpty)
+        // 2. The line's own {tag} — hidden by the editor except on the line being edited, where it shows faintly.
+        if (!line.Tag.IsEmpty)
+            segments.Add(new StyledSegment(line.Tag, body with { Bold = false, Italic = false, Color = palette.Ghost }, SegmentRole.Marker));
+
+        // 3. The label ("AKIRA:", "SFX:", "# ").
+        if (!line.Label.IsEmpty && line.Label != line.Tag)
         {
             var label = ResolveLabel(sheet, line, body, palette);
             segments.Add(new StyledSegment(line.Label, label, SegmentRole.Label, IsWarning: line.IsUnknownSpeaker));
@@ -107,15 +121,25 @@ public static class StyleResolver
                 var modifier = label with { Bold = false, Italic = true, Color = palette.Muted };
                 segments.Add(new StyledSegment(line.ModifierRange, modifier, SegmentRole.Modifier));
             }
+
+            // "**AKIRA**": the label is bold already, so its ** are just faint markup.
+            foreach (var marker in line.LabelMarkers)
+                segments.Add(new StyledSegment(marker, label with { Color = palette.Ghost }, SegmentRole.Marker));
         }
 
-        // 3. Inline **bold** / *italic*, with their markers faded out.
+        // 4. A ticked checklist item: its text fades and gets struck through.
+        bool completed = line.List == ListKind.Checkbox && line.IsChecked;
+        var words = completed ? body with { Color = palette.Muted } : body;
+        if (completed && !line.Body.IsEmpty)
+            segments.Add(new StyledSegment(line.Body, words, SegmentRole.Body, IsCompleted: true));
+
+        // 5. Inline **bold** / *italic*, with their markers faded out.
         foreach (var span in line.Inlines)
         {
-            var marker = body with { Color = palette.Ghost };
-            var emphasis = span.Kind == InlineKind.Bold ? body with { Bold = true } : body with { Italic = true };
+            var marker = words with { Color = palette.Ghost };
+            var emphasis = span.Kind == InlineKind.Bold ? words with { Bold = true } : words with { Italic = true };
             segments.Add(new StyledSegment(span.OpenMarker, marker, SegmentRole.Marker));
-            segments.Add(new StyledSegment(span.Content, emphasis, SegmentRole.Body));
+            segments.Add(new StyledSegment(span.Content, emphasis, SegmentRole.Body, IsCompleted: completed));
             segments.Add(new StyledSegment(span.CloseMarker, marker, SegmentRole.Marker));
         }
 

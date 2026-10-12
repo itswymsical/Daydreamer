@@ -2,10 +2,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Daydreamer.Core\Daydreamer.Core.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="AvalonEdit" Version="6.3.1.120" />
+    <!-- The editor control, included as source with small paragraph-layout additions (see third-party/AvalonEdit). -->
+    <ProjectReference Include="..\..\third-party\AvalonEdit\ICSharpCode.AvalonEdit\ICSharpCode.AvalonEdit.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -19,6 +17,13 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <!-- The logo, as the .exe's icon (Explorer, Start, the taskbar). Made by tools/MakeIcon.ps1. -->
+    <ApplicationIcon>Daydreamer.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The same icon for the window itself (taskbar button, Alt+Tab). -->
+    <Resource Include="Daydreamer.ico" />
+  </ItemGroup>
 
 </Project>

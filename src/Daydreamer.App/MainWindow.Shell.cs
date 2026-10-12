@@ -66,10 +66,10 @@ public partial class MainWindow
         UpdateShellButtons();
     }
 
-    /// <summary>Ambient mode is a dark-mode effect: it runs when it's switched on, the theme is dark, and the window is visible.</summary>
+    /// <summary>Ambient mode is a dark-mode effect: it runs when it's switched on, the theme is dark, and the page is on screen.</summary>
     private void UpdateAmbient()
     {
-        bool run = _ambientEnabled && ThemeManager.IsDark && WindowState != WindowState.Minimized;
+        bool run = _ambientEnabled && ThemeManager.IsDark && WindowState != WindowState.Minimized && !IsHomeShown;
         if (run) AmbientLights.Start();
         else AmbientLights.Stop();
         AmbientButton.Visibility = ThemeManager.IsDark ? Visibility.Visible : Visibility.Collapsed;
@@ -152,10 +152,10 @@ public partial class MainWindow
         UpdateMaximizeVisual();
     }
 
-    /// <summary>On narrow windows the Insert buttons drop their labels and keep just their icons.</summary>
+    /// <summary>The Insert buttons show their labels only on very wide windows; otherwise just icons (with tooltips).</summary>
     private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
     {
-        var visibility = ActualWidth < 1280 ? Visibility.Collapsed : Visibility.Visible;
+        var visibility = ActualWidth < 1760 ? Visibility.Collapsed : Visibility.Visible;
         if (!Equals(Resources["ToolbarLabelVisibility"], visibility))
             Resources["ToolbarLabelVisibility"] = visibility;
     }

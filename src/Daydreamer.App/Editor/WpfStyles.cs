@@ -1,3 +1,4 @@
+using System.IO;
 using System.Windows;
 using System.Windows.Media;
 using Daydreamer.Core.Formatting;
@@ -21,9 +22,35 @@ public static class WpfStyles
 
     public static readonly TextDecorationCollection NoDecorations = Freeze(new TextDecorationCollection());
     public static readonly TextDecorationCollection Underline = TextDecorations.Underline;
+    public static readonly TextDecorationCollection Strikethrough = TextDecorations.Strikethrough;
+
+    // Fonts kept in the open project's fonts folder: name → where WPF can find it ("file:///…/fonts/#Name").
+    private static Dictionary<string, string> _projectFonts = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Word processors measure fonts in points (1/72 inch); WPF uses 1/96 inch.</summary>
     public static double PointsToPixels(double points) => points * 96.0 / 72.0;
+
+    /// <summary>
+    /// Lets the fonts in a project's fonts folder be used by name, as if they were installed (they came
+    /// packed inside an imported document). Returns their names. Pass null when no project is open.
+    /// </summary>
+    public static IReadOnlyList<string> UseProjectFonts(string? folder)
+    {
+        _projectFonts = new(StringComparer.OrdinalIgnoreCase);
+        if (folder != null && Directory.Exists(folder))
+        {
+            var location = new Uri(Path.GetFullPath(folder).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar);
+            foreach (var family in Fonts.GetFontFamilies(location))
+            {
+                foreach (string name in family.FamilyNames.Values)
+                    _projectFonts.TryAdd(name, location.AbsoluteUri + "#" + name);
+            }
+        }
+        // The same name may now mean a different font, so forget what was worked out before.
+        Typefaces.Clear();
+        Families.Clear();
+        return [.. _projectFonts.Keys.Distinct(StringComparer.OrdinalIgnoreCase)];
+    }
 
     public static Typeface Typeface(ResolvedStyle style)
     {
@@ -52,13 +79,14 @@ public static class WpfStyles
         var key = (name, Hundredths(lineSpacing));
         if (Families.TryGetValue(key, out var cached)) return cached;
 
-        var physical = new FontFamily(name);
+        string source = _projectFonts.GetValueOrDefault(name, name);
+        var physical = new FontFamily(source);
         FontFamily family = physical;
         if (key.Item2 != 100)
         {
             double natural = physical.LineSpacing;
             family = new FontFamily();
-            family.FamilyMaps.Add(new FontFamilyMap { Target = name, Unicode = "0000-10ffff" });
+            family.FamilyMaps.Add(new FontFamilyMap { Target = source, Unicode = "0000-10ffff" });
             family.LineSpacing = natural * key.Item2 / 100.0;
             family.Baseline = physical.Baseline + (family.LineSpacing - natural) / 2;
         }

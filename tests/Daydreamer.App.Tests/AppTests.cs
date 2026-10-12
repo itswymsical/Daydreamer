@@ -144,3 +144,48 @@ public class FormatTargetTests
         Assert.Equal(AppTheme.Light, ThemeManager.FromSetting("light"));
     }
 }
+
+public class MusicPlayerTests
+{
+    [Theory]
+    [InlineData(@"C:\Music\Theme.mp3")]
+    [InlineData(@"C:\Music\Track #1.mp3")]
+    [InlineData(@"C:\Music\100% Rain.mp3")]
+    [InlineData(@"C:\Music\Scene 7 (ver. 2) a%20b.mp3")]
+    [InlineData(@"E:\OneDrive\Documents\@Applications\夜の街.flac")]
+    public void Song_files_are_found_whatever_their_names(string path)
+    {
+        Assert.Equal(path, Daydreamer.App.Music.WpfAudioPlayer.ToUri(path).LocalPath);
+    }
+}
+
+public class WindowsSpellingTests
+{
+    // These use the real Windows spell checker, with its US English dictionary.
+    private static readonly Daydreamer.App.Editor.WindowsSpellChecker? English = Daydreamer.App.Editor.WindowsSpellChecker.TryCreate("en-US");
+
+    [Fact]
+    public void Finds_a_misspelling_and_suggests_the_word()
+    {
+        Assert.NotNull(English);
+        var issue = Assert.Single(English.Check("I can't beleive it."));
+        Assert.Equal(new Daydreamer.Core.Parsing.TextRange(8, 7), issue.Range);
+        Assert.Contains("believe", English.Suggest("beleive"));
+    }
+
+    [Fact]
+    public void Spots_a_repeated_word()
+    {
+        Assert.NotNull(English);
+        var issue = Assert.Single(English.Check("It was the the last train."));
+        Assert.Equal(Daydreamer.Core.Proofing.SpellingIssueKind.RepeatedWord, issue.Kind);
+    }
+
+    [Fact]
+    public void Blanked_out_parts_of_a_line_do_not_confuse_it()
+    {
+        Assert.NotNull(English);
+        // What the script checker sends for "AKIRA (whisper): Don't move.": the name blanked out with spaces.
+        Assert.Empty(English.Check("                 Don't move."));
+    }
+}

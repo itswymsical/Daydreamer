@@ -33,7 +33,7 @@ public sealed class ReadableBrushConverter : IValueConverter
 public sealed class FontNameConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
-        value is string { Length: > 0 } name ? new FontFamily(name) : SystemFonts.MessageFontFamily;
+        value is string { Length: > 0 } name ? WpfStyles.Family(name, 1) : SystemFonts.MessageFontFamily; // knows the project's own fonts too
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
         throw new NotSupportedException();
@@ -59,6 +59,43 @@ public sealed class InverseBoolConverter : IValueConverter
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value is not true;
 
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => value is not true;
+}
+
+/// <summary>An alignment → its toolbar icon (the IconAlign… geometries in Themes/Daydreamer.xaml).</summary>
+public sealed class AlignmentIconConverter : IValueConverter
+{
+    public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        Application.Current.TryFindResource("IconAlign" + (value as Daydreamer.Core.Models.TextAlign? ?? Daydreamer.Core.Models.TextAlign.Left));
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
+/// <summary>Alignment ⇄ the words in the side panel's alignment box ("Default" means inherit).</summary>
+public sealed class AlignmentChoiceConverter : IValueConverter
+{
+    public static IReadOnlyList<string> Choices { get; } = ["Default", "Left", "Center", "Right", "Justify"];
+
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is Daydreamer.Core.Models.TextAlign alignment ? alignment.ToString() : "Default";
+
+    public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        Enum.TryParse<Daydreamer.Core.Models.TextAlign>(value as string, out var alignment) ? alignment : null;
+}
+
+/// <summary>An element type → the name people see ("Description", "SFX", "Scene" if panels are called SCENE).</summary>
+public sealed class ElementTypeNameConverter : IValueConverter
+{
+    /// <summary>The open project's keywords (set when a project opens).</summary>
+    public static Daydreamer.Core.Models.Keywords? Keywords { get; set; }
+
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        value is Daydreamer.Core.Models.ElementType type
+            ? Keywords?.NameOf(type) ?? Daydreamer.Core.Models.StyleSheet.DisplayNameOf(type)
+            : "";
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
 }
 
 /// <summary>A count → "12 lines" / "1 line".</summary>

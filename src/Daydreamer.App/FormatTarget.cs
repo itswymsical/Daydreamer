@@ -31,7 +31,7 @@ public sealed class FormatTarget : ObservableObject
 
     public string ToolTip => _style == null
         ? "Open a document to change fonts"
-        : $"Font, size, color and line spacing here change every {Label} line. Click to see all of its settings.";
+        : $"Font, size, color and spacing here change every {Label} line. Click to see all of its settings.";
 
     public void Set(string label, string icon, TextStyle style, Func<ThemePalette, ResolvedStyle> resolve, object source)
     {
@@ -85,6 +85,18 @@ public sealed class FormatTarget : ObservableObject
             if (_style == null || value is not { } spacing || Resolved is not { } current) return;
             if (spacing is >= 0.5 and <= 4 && Math.Abs(spacing - current.LineSpacing) > 0.001)
                 _style.LineSpacing = spacing;
+        }
+    }
+
+    /// <summary>Space above each paragraph in points, as it currently looks. Setting it applies to every line of this kind.</summary>
+    public double? SpaceBefore
+    {
+        get => Resolved?.SpaceBefore;
+        set
+        {
+            if (_style == null || value is not { } space || Resolved is not { } current) return;
+            if (space is >= 0 and <= 72 && Math.Abs(space - current.SpaceBefore) > 0.01)
+                _style.SpaceBefore = space;
         }
     }
 

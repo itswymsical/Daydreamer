@@ -14,6 +14,8 @@ public sealed class TextStyle : ObservableObject
     private bool? _underline;
     private string? _color;
     private double? _lineSpacing;
+    private TextAlign? _alignment;
+    private double? _spaceBefore;
 
     public string? FontFamily
     {
@@ -51,6 +53,19 @@ public sealed class TextStyle : ObservableObject
         set => SetField(ref _lineSpacing, value is >= 0.5 and <= 4 ? Math.Round(value.Value, 2) : null);
     }
 
+    /// <summary>Left, center, right or justified. Null means inherit (and in the end, left).</summary>
+    public TextAlign? Alignment { get => _alignment; set => SetField(ref _alignment, value); }
+
+    /// <summary>
+    /// Extra space above each paragraph, in points (like "space before paragraph" in Google Docs or Word):
+    /// 0 is none, 12 is about one blank line. Anything outside 0–72 is treated as "inherit".
+    /// </summary>
+    public double? SpaceBefore
+    {
+        get => _spaceBefore;
+        set => SetField(ref _spaceBefore, value is >= 0 and <= 72 ? Math.Round(value.Value, 1) : null);
+    }
+
     public TextStyle Clone() => new()
     {
         FontFamily = FontFamily,
@@ -60,5 +75,7 @@ public sealed class TextStyle : ObservableObject
         Underline = Underline,
         Color = Color,
         LineSpacing = LineSpacing,
+        Alignment = Alignment,
+        SpaceBefore = SpaceBefore,
     };
 }
