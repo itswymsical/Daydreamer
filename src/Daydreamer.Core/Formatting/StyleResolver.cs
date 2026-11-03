@@ -35,7 +35,7 @@ public sealed record StyledSegment(TextRange Range, ResolvedStyle Style, Segment
 
 /// <summary>
 /// Decides how every part of a line should look by stacking style layers:
-/// theme gray → Default text → element style (e.g. SFX) → character → modifier such as (thought).
+/// theme gray → Default text → element style (e.g. SFX) → character → modifier such as (thought) → a style you made.
 /// Each layer only changes what it sets, so with no colors chosen anywhere, everything stays in the theme's grays.
 /// </summary>
 public static class StyleResolver
@@ -89,6 +89,8 @@ public static class StyleResolver
             layers.Add(line.Character.Style);
         if (line.Type == ElementType.Dialogue)
             layers.AddRange(sheet.MatchModifiers(line.Modifier).Select(m => m.Style));
+        if (line.CustomStyle != null)
+            layers.Add(line.CustomStyle.Style);
         var resolved = Merge(Start(palette.ToneFor(line.Type)), [.. layers]);
 
         // A line's own alignment (from its {tag}) wins over its style's.
@@ -133,11 +135,18 @@ public static class StyleResolver
         if (completed && !line.Body.IsEmpty)
             segments.Add(new StyledSegment(line.Body, words, SegmentRole.Body, IsCompleted: true));
 
-        // 5. Inline **bold** / *italic*, with their markers faded out.
+        // 5. Inline **bold** / *italic* and game dialogue's marks, with their markers faded out.
         foreach (var span in line.Inlines)
         {
             var marker = words with { Color = palette.Ghost };
-            var emphasis = span.Kind == InlineKind.Bold ? words with { Bold = true } : words with { Italic = true };
+            var emphasis = span.Kind switch
+            {
+                InlineKind.Bold => words with { Bold = true },
+                InlineKind.Italic => words with { Italic = true },
+                InlineKind.Effect or InlineKind.Token => words with { Color = palette.Effect },
+                InlineKind.Flow => words with { Bold = false, Italic = false, Color = palette.Faint },
+                _ => words,
+            };
             segments.Add(new StyledSegment(span.OpenMarker, marker, SegmentRole.Marker));
             segments.Add(new StyledSegment(span.Content, emphasis, SegmentRole.Body, IsCompleted: completed));
             segments.Add(new StyledSegment(span.CloseMarker, marker, SegmentRole.Marker));

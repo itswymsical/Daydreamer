@@ -53,6 +53,15 @@ public sealed class NullToCollapsedConverter : IValueConverter
         throw new NotSupportedException();
 }
 
+/// <summary>Whether a document is pinned → what its right-click menu offers.</summary>
+public sealed class PinLabelConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value is true ? "Unpin" : "Pin to top";
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) =>
+        throw new NotSupportedException();
+}
+
 /// <summary>true → false. Used so clicking the color button while its pop-up is open just closes it.</summary>
 public sealed class InverseBoolConverter : IValueConverter
 {

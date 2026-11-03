@@ -60,15 +60,15 @@ public static partial class LineEditing
                 continue;
             }
 
-            // Keep the line's own alignment; any line-type tag gives way to the list.
-            var (indent, _, alignment, rest) = parser.SplitTag(line);
+            // Keep the line's own alignment and style; any line-type tag gives way to the list.
+            var (indent, _, alignment, style, rest) = parser.SplitTag(line);
             string words = p.Type == ElementType.ListItem || p.IsForcedAction || !p.Tag.IsEmpty && p.Label == p.Tag
                 ? p.Body.Of(line)
                 : rest.Trim();
             if (removing)
             {
                 string plain = LineConverter.AsDescription(words, parser);
-                result.Add(ScriptParser.JoinTag(indent, null, alignment, plain));
+                result.Add(ScriptParser.JoinTag(indent, null, alignment, plain, style));
                 continue;
             }
 
@@ -77,7 +77,7 @@ public static partial class LineEditing
                 counters.Remove(deeper);
             int number = counters.GetValueOrDefault(p.IndentLevel) + 1;
             counters[p.IndentLevel] = number;
-            result.Add(ScriptParser.JoinTag(indent, null, alignment, Marker(kind, number) + words));
+            result.Add(ScriptParser.JoinTag(indent, null, alignment, Marker(kind, number) + words, style));
         }
         return result;
     }
@@ -92,7 +92,7 @@ public static partial class LineEditing
         string indent = parser.SplitTag(line).Indent;
         int number = p.List == ListKind.Numbered && int.TryParse(p.ListMarker.Of(line).TrimEnd('.', ')'), out int n) ? n + 1 : 1;
         // The next item keeps this one's alignment, like the next paragraph does in a word processor.
-        return new ListEnter(EndList: false, NextPrefix: ScriptParser.JoinTag(indent, null, p.Alignment, Marker(p.List, number)));
+        return new ListEnter(EndList: false, NextPrefix: ScriptParser.JoinTag(indent, null, p.Alignment, Marker(p.List, number), p.StyleName));
     }
 
     /// <summary>
@@ -142,8 +142,32 @@ public static partial class LineEditing
     /// </summary>
     public static string SetLineAlignment(string line, TextAlign? alignment, ScriptParser parser)
     {
-        var (indent, typeWord, _, rest) = parser.SplitTag(line);
-        return ScriptParser.JoinTag(indent, typeWord, alignment, rest);
+        var (indent, typeWord, _, style, rest) = parser.SplitTag(line);
+        return ScriptParser.JoinTag(indent, typeWord, alignment, rest, style);
+    }
+
+    /// <summary>
+    /// Puts a line in one of your own styles, kept in its hidden tag (e.g. <c>{style:Letter}</c>). Pass null
+    /// to take the line out of it again.
+    /// </summary>
+    public static string SetLineStyle(string line, string? style, ScriptParser parser)
+    {
+        var (indent, typeWord, alignment, _, rest) = parser.SplitTag(line);
+        return ScriptParser.JoinTag(indent, typeWord, alignment, rest, style);
+    }
+
+    /// <summary>A document's text with every line in the style <paramref name="oldName"/> moved to <paramref name="newName"/>.</summary>
+    public static string RenameStyle(string text, string oldName, string newName, ScriptParser parser)
+    {
+        var lines = text.Split('\n');
+        for (int i = 0; i < lines.Length; i++)
+        {
+            bool carriageReturn = lines[i].EndsWith('\r');
+            string line = carriageReturn ? lines[i][..^1] : lines[i];
+            if (!string.Equals(parser.SplitTag(line).Style, oldName, StringComparison.OrdinalIgnoreCase)) continue;
+            lines[i] = SetLineStyle(line, newName, parser) + (carriageReturn ? "\r" : "");
+        }
+        return string.Join('\n', lines);
     }
 
     public static string Indent(string line) => IndentUnit + line;

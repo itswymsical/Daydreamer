@@ -204,6 +204,10 @@ public static class DocxExporter
 
         public (string Id, ResolvedStyle Look) For(ExportParagraph paragraph)
         {
+            // A style you made is a Word style of its own, with that name.
+            if (paragraph.CustomStyle is { } custom)
+                return Make("custom:" + custom.Name, () => (custom.Name, "Normal", paragraph.Style, HeadingLevel: null));
+
             // A defined character's lines get the character's own style, built on Dialogue.
             if (paragraph.Type == ElementType.Dialogue && paragraph.Character is { } character)
             {

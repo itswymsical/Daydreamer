@@ -32,6 +32,26 @@ public sealed class DocumentPreview : FrameworkElement
     public static readonly DependencyProperty KeywordsProperty = DependencyProperty.Register(
         nameof(Keywords), typeof(Keywords), typeof(DocumentPreview), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
 
+    public static readonly DependencyProperty CustomStylesProperty = DependencyProperty.Register(
+        nameof(CustomStyles), typeof(IEnumerable<NamedStyle>), typeof(DocumentPreview), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.AffectsRender));
+
+    public static readonly DependencyProperty DialogueMarkupProperty = DependencyProperty.Register(
+        nameof(DialogueMarkup), typeof(bool), typeof(DocumentPreview), new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender));
+
+    /// <summary>The styles you've made that this document can use.</summary>
+    public IEnumerable<NamedStyle>? CustomStyles
+    {
+        get => (IEnumerable<NamedStyle>?)GetValue(CustomStylesProperty);
+        set => SetValue(CustomStylesProperty, value);
+    }
+
+    /// <summary>True in projects with a game folder, where pauses and effects are hidden like **.</summary>
+    public bool DialogueMarkup
+    {
+        get => (bool)GetValue(DialogueMarkupProperty);
+        set => SetValue(DialogueMarkupProperty, value);
+    }
+
     /// <summary>The project's words for PAGE, PANEL and so on.</summary>
     public Keywords? Keywords
     {
@@ -63,7 +83,11 @@ public sealed class DocumentPreview : FrameworkElement
         if (Styles is not { } styles || string.IsNullOrEmpty(Text) || ActualWidth <= 0) return;
 
         var palette = ThemeManager.Palette;
-        var parser = new ScriptParser(new CharacterRegistry(Characters ?? []), Keywords);
+        var parser = new ScriptParser(new CharacterRegistry(Characters ?? []), Keywords)
+        {
+            CustomStyles = CustomStyles ?? [],
+            DialogueMarkup = DialogueMarkup,
+        };
         double scale = ActualWidth / PageWidth;
         double pageHeight = ActualHeight / scale;
         double pixelsPerDip = VisualTreeHelper.GetDpi(this).PixelsPerDip;

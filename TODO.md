@@ -66,6 +66,21 @@ Daydreamer's way of working: plain text underneath, with formatting applied by r
 - [ ] Maybe: a **"Proofread this page"** button that asks Claude about tone and dialogue (online,
       needs an API key, costs a little per use).
 
+## Organising
+
+- [x] **Projects on the Home page**, each with its own page of documents.
+- [x] **Pinned documents**, first in the document list and in their own row on Home.
+- [x] **Your own styles**, for one document or a whole project.
+- [ ] Maybe: folders inside a project. A project is one flat folder of documents for now.
+
+## Game dialogue
+
+- [x] **One document per character** → HJSON localization and a C# definition, with tones, speed and effects in the text.
+- [x] **Importing** existing localization and definitions into documents.
+- [ ] Follow helper methods like `DefineLost` when importing, so fewer conversations stay `// hand-written`.
+- [ ] Other localization: books (`BookLibrary`, which has prose blocks of its own), `SilvianCounsel`, item text.
+- [ ] Other languages than `en-US`.
+
 ## Bigger ideas from earlier
 
 - [x] **Export** to PDF, Word (.docx) and plain text, using the same formatting rules so exports match the

@@ -35,11 +35,17 @@ public partial class PromptDialog : Window
     }
 
     /// <summary>Asks "are you sure?". Returns true if the person clicked the OK button.</summary>
-    public static bool Confirm(Window owner, string title, string message, string okText)
+    /// <param name="cancelText">Another word for Cancel. It also becomes the button in focus: the safe answer, for a question that removes something.</param>
+    public static bool Confirm(Window owner, string title, string message, string okText, string? cancelText = null)
     {
         var dialog = new PromptDialog(title, message, okText) { Owner = owner };
         dialog.InputBox.Visibility = Visibility.Collapsed;
-        dialog.Loaded += (_, _) => dialog.OkButton.Focus();
+        if (cancelText != null) dialog.CancelButton.Content = cancelText;
+        dialog.Loaded += (_, _) =>
+        {
+            if (cancelText != null) dialog.CancelButton.Focus();
+            else dialog.OkButton.Focus();
+        };
         return dialog.ShowDialog() == true;
     }
 

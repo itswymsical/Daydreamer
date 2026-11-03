@@ -167,8 +167,8 @@ public partial class MainWindow
                 }
                 else
                 {
-                    // The new line keeps the alignment (like the next paragraph in a word processor) but not the type.
-                    string carry = ScriptParser.JoinTag(_parser.SplitTag(document.GetText(line)).Indent, null, parsed.Alignment, "");
+                    // The new line keeps the alignment and style (like the next paragraph in a word processor) but not the type.
+                    string carry = ScriptParser.JoinTag(_parser.SplitTag(document.GetText(line)).Indent, null, parsed.Alignment, "", parsed.StyleName);
                     document.Insert(caret, newline + carry);
                 }
                 Editor.TextArea.Caret.BringCaretToView();
@@ -221,7 +221,8 @@ public partial class MainWindow
     {
         if (_project == null || _document == null) return;
 
-        var current = _parser.ParseLine(Editor.Document.GetText(Editor.Document.GetLineByOffset(Editor.CaretOffset))).Type;
+        var currentLine = _parser.ParseLine(Editor.Document.GetText(Editor.Document.GetLineByOffset(Editor.CaretOffset)));
+        var current = currentLine.Type;
         var menu = new ContextMenu { PlacementTarget = TypeButton, Placement = PlacementMode.Bottom };
         menu.Items.Add(new MenuItem { Header = "Change the selected lines to…", IsEnabled = false });
 
@@ -255,7 +256,35 @@ public partial class MainWindow
         dialogue.Items.Add(newSpeaker);
         menu.Items.Insert(2, dialogue);
 
+        // Styles you made yourself go on top of whatever kind of line this is.
+        menu.Items.Add(new Separator());
+        menu.Items.Add(new MenuItem { Header = "Your styles", IsEnabled = false });
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var style in _project.StylesFor(_document.Title).Where(s => seen.Add(s.Name)))
+        {
+            bool isCurrent = currentLine.CustomStyle == style;
+            var item = new MenuItem { Header = PreviewOf(style), IsCheckable = true, IsChecked = isCurrent };
+            System.Windows.Automation.AutomationProperties.SetName(item, style.Name);
+            item.Click += (_, _) => ApplyCustomStyle(isCurrent ? null : style.Name); // picking the one it's in takes it out
+            menu.Items.Add(item);
+        }
+        foreach (var item in NewStyleItems(applyToSelection: true)) menu.Items.Add(item);
+
         menu.IsOpen = true;
+    }
+
+    /// <summary>A menu entry in the style it stands for.</summary>
+    private TextBlock PreviewOf(NamedStyle style)
+    {
+        var look = StyleResolver.Merge(StyleResolver.Start(ThemeManager.Palette.Text), _project!.Styles.Base, style.Style);
+        return new TextBlock
+        {
+            Text = style.Name,
+            FontFamily = WpfStyles.Family(look.FontFamily, 1),
+            FontWeight = look.Bold ? FontWeights.Bold : FontWeights.Normal,
+            FontStyle = look.Italic ? FontStyles.Italic : FontStyles.Normal,
+            FontSize = Math.Clamp(WpfStyles.PointsToPixels(look.FontSize), 13, 18),
+        };
     }
 
     /// <summary>A menu entry that looks like the kind of line it stands for (like Docs' style menu).</summary>
@@ -462,7 +491,7 @@ public partial class MainWindow
         if (enter.EndList)
         {
             // Enter on an empty item ends the list: the marker goes, the (now empty) line stays — with its alignment.
-            document.Replace(line.Offset, line.Length, ScriptParser.JoinTag(_parser.SplitTag(text).Indent, null, parsed.Alignment, ""));
+            document.Replace(line.Offset, line.Length, ScriptParser.JoinTag(_parser.SplitTag(text).Indent, null, parsed.Alignment, "", parsed.StyleName));
             return true;
         }
 
@@ -511,7 +540,7 @@ public partial class MainWindow
         for (int i = 0; i < lines.Length; i++)
         {
             bool carriageReturn = lines[i].EndsWith('\r');
-            var (indent, _, _, rest) = _parser.SplitTag(carriageReturn ? lines[i][..^1] : lines[i]);
+            var (indent, _, _, _, rest) = _parser.SplitTag(carriageReturn ? lines[i][..^1] : lines[i]);
             lines[i] = indent + rest + (carriageReturn ? "\r" : "");
         }
         string plain = string.Join("\n", lines);
@@ -572,9 +601,15 @@ public partial class MainWindow
         var dialog = new OpenFileDialog
         {
             Title = "Import a document",
-            Filter = "Documents (*.docx, *.txt, *.md)|*.docx;*.txt;*.md|Word or Google Docs files (*.docx)|*.docx|Text files (*.txt, *.md)|*.txt;*.md",
+            Filter = "Documents (*.docx, *.txt, *.md, *.hjson)|*.docx;*.txt;*.md;*.hjson|Word or Google Docs files (*.docx)|*.docx|Text files (*.txt, *.md)|*.txt;*.md|Game dialogue (*.hjson)|*.hjson",
         };
         if (dialog.ShowDialog(this) != true) return;
+
+        if (Path.GetExtension(dialog.FileName).Equals(".hjson", StringComparison.OrdinalIgnoreCase))
+        {
+            ImportGameDialogue(dialog.FileName);
+            return;
+        }
 
         string text;
         ImportedDocument? imported = null;

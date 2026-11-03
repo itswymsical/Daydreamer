@@ -29,6 +29,13 @@ public partial class MainWindow
         var line = Editor.Document.GetLineByOffset(Editor.CaretOffset);
         var parsed = _parser.ParseLine(Editor.Document.GetText(line));
 
+        // A line in a style you made edits that style.
+        if (parsed.CustomStyle is { } custom)
+        {
+            _formatTarget.Set(custom.Name, "\uE8D2", custom.Style, palette => StyleResolver.ResolveBody(sheet, parsed, palette), custom);
+            return;
+        }
+
         if (parsed.Character is { } character)
         {
             _formatTarget.Set(character.Name, "", character.Style,
@@ -50,6 +57,9 @@ public partial class MainWindow
         {
             case Character character:
                 SelectCharacter(character);
+                break;
+            case NamedStyle custom:
+                SelectCustomStyle(custom);
                 break;
             case StyleEntry entry:
                 ShowSidePanelTab(StylesTab);
@@ -157,7 +167,7 @@ public partial class MainWindow
         ApplyEditorTheme();
         ApplyFormatting();
         CharacterList.Items.Refresh(); // re-run the name-color converters against the new page color
-        if (IsHomeShown) RecentList.ItemsSource = BuildHomeItems(); // redraw the page previews in the new colors
+        if (IsHomeShown) RefreshHome(); // redraw the page previews in the new colors
         UpdateAmbient();
         UpdateShellButtons();
     }

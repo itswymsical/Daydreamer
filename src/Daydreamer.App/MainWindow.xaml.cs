@@ -161,6 +161,7 @@ public partial class MainWindow : Window
         _styleEntries = StyleEntry.CreateFor(_project.Styles, _project.Keywords);
         StylesList.ItemsSource = _styleEntries;
         ProjectLabel.Text = _project.Name;
+        UpdateGameFolderLabel();
         ApplyFormatting();
 
         _settings.LastProject = name;
@@ -241,6 +242,7 @@ public partial class MainWindow : Window
         SaveDocument();
         _completion?.Close();
         _document = document;
+        RefreshCustomStyles(); // a document has its own styles, as well as the project's
 
         _loadingDocument = true;
         Editor.Document = new TextDocument(document != null ? _library.ReadDocument(document) : "");
@@ -312,6 +314,11 @@ public partial class MainWindow : Window
             OpenDocument(null);
         }
         _library.TrashDocument(document);
+        if (_project != null)
+        {
+            _project.DocumentRemoved(document.Title);
+            SaveProject();
+        }
         RefreshDocuments(_document?.Title);
     }
 
@@ -347,7 +354,13 @@ public partial class MainWindow : Window
         SaveDocument();
         try
         {
+            string oldTitle = _document.Title;
             _document = _library.RenameDocument(_document, newTitle);
+            if (_project != null)
+            {
+                _project.DocumentRenamed(oldTitle, _document.Title); // its pin and its styles go with it
+                SaveProject();
+            }
         }
         catch (IOException ex)
         {
@@ -476,6 +489,8 @@ public partial class MainWindow : Window
         var palette = ThemeManager.Palette;
         _parser.Registry = new CharacterRegistry(_project?.Characters ?? []);
         _parser.Keywords = _project?.Keywords ?? new Keywords();
+        _parser.CustomStyles = _project?.StylesFor(_document?.Title) ?? [];
+        _parser.DialogueMarkup = _project?.GameFolder != null;
         UpdateKeywordLabels();
         _colorizer.Styles = _project?.Styles;
         _colorizer.Palette = palette;
@@ -488,7 +503,7 @@ public partial class MainWindow : Window
         Editor.Foreground = WpfStyles.TextBrush(baseStyle.Color, palette);
         Editor.TextArea.TextView.Redraw();
 
-        foreach (var entry in _styleEntries) entry.Refresh();
+        foreach (var entry in _styleEntries.Concat(_customEntries)) entry.Refresh();
         _formatTarget.Refresh();
         UpdateCaretInfo();
     }
@@ -535,7 +550,7 @@ public partial class MainWindow : Window
         var line = Editor.Document.GetLineByOffset(Editor.CaretOffset);
         var parsed = _parser.ParseLine(Editor.Document.GetText(line));
         string modifier = string.IsNullOrEmpty(parsed.Modifier) ? "" : $" ({parsed.Modifier})";
-        TypeLabel.Text = NameOf(parsed.Type == ElementType.Blank ? ElementType.Action : parsed.Type);
+        TypeLabel.Text = parsed.CustomStyle?.Name ?? NameOf(parsed.Type == ElementType.Blank ? ElementType.Action : parsed.Type);
 
         string what = parsed.Type switch
         {
@@ -839,6 +854,7 @@ public partial class MainWindow : Window
         menu.Items.Add(new MenuItem { Header = "Cut", Command = ApplicationCommands.Cut, CommandTarget = Editor.TextArea });
         menu.Items.Add(new MenuItem { Header = "Copy", Command = ApplicationCommands.Copy, CommandTarget = Editor.TextArea });
         menu.Items.Add(new MenuItem { Header = "Paste", Command = ApplicationCommands.Paste, CommandTarget = Editor.TextArea });
+        AddEffectItems(menu);
 
         if (_project == null || _document == null) return;
         int lineNumber = position?.Line ?? Editor.TextArea.Caret.Line;
