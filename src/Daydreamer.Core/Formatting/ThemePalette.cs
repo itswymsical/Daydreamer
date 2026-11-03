@@ -14,19 +14,20 @@ public sealed record ThemePalette(
     string Faint,      // labels like "SFX:" and "CAPTION:"
     string Ghost,      // the ** and * around emphasis
     string Warning,    // the underline under speakers who aren't characters yet
-    string Paper)      // the page color, used to keep custom colors readable
+    string Paper,      // the page color, used to keep custom colors readable
+    string Effect)     // game dialogue: words with an effect on them, like [shake: this]
 {
     public static readonly ThemePalette Light = new(
         Strong: "#202124", Text: "#3C4043", Secondary: "#5F6368", Muted: "#80868B",
-        Faint: "#9AA0A6", Ghost: "#C4C7CC", Warning: "#E8590C", Paper: "#FFFFFF");
+        Faint: "#9AA0A6", Ghost: "#C4C7CC", Warning: "#E8590C", Paper: "#FFFFFF", Effect: "#7048E8");
 
     public static readonly ThemePalette Dark = new(
         Strong: "#F1F1F4", Text: "#CFD0D6", Secondary: "#A3A6AE", Muted: "#80848C",
-        Faint: "#6E727A", Ghost: "#4A4E55", Warning: "#FF922B", Paper: "#1E1E23");
+        Faint: "#6E727A", Ghost: "#4A4E55", Warning: "#FF922B", Paper: "#1E1E23", Effect: "#B197FC");
 
     /// <summary>True if <paramref name="color"/> is one of this palette's own tones (as opposed to a color someone picked).</summary>
     public bool Contains(string color) =>
-        new[] { Strong, Text, Secondary, Muted, Faint, Ghost, Warning }.Contains(color, StringComparer.OrdinalIgnoreCase);
+        new[] { Strong, Text, Secondary, Muted, Faint, Ghost, Warning, Effect }.Contains(color, StringComparer.OrdinalIgnoreCase);
 
     /// <summary>The default gray for a kind of line.</summary>
     public string ToneFor(ElementType type) => type switch

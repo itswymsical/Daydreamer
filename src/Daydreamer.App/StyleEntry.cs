@@ -16,13 +16,26 @@ public sealed class StyleEntry : ObservableObject
     private readonly Func<ThemePalette, ResolvedStyle> _resolve;
     private readonly Keywords? _keywords;
 
-    public StyleEntry(TextStyle style, ElementType? type, Func<ThemePalette, ResolvedStyle> resolve, Keywords? keywords = null)
+    public StyleEntry(TextStyle style, ElementType? type, Func<ThemePalette, ResolvedStyle> resolve, Keywords? keywords = null, NamedStyle? custom = null, bool onlyThisDocument = false)
     {
         Style = style;
         Type = type;
         _resolve = resolve;
         _keywords = keywords;
+        Custom = custom;
+        OnlyThisDocument = onlyThisDocument;
     }
+
+    /// <summary>The style you made that this entry is for, or null for the built-in kinds of line.</summary>
+    public NamedStyle? Custom { get; }
+
+    /// <summary>A style of your own that only this document offers, rather than the whole project.</summary>
+    public bool OnlyThisDocument { get; }
+
+    public string Scope => OnlyThisDocument ? "This document" : "Project";
+
+    /// <summary>What the button that moves a style between a document and its project says.</summary>
+    public string MoveLabel => OnlyThisDocument ? "Use in the whole project" : "Keep to this document";
 
     public TextStyle Style { get; }
 
@@ -30,11 +43,12 @@ public sealed class StyleEntry : ObservableObject
     public ElementType? Type { get; }
 
     /// <summary>"Default text", "Description", "Scene" (if panels are called SCENE)…</summary>
-    public string Name => Type is { } type ? _keywords?.NameOf(type) ?? StyleSheet.DisplayNameOf(type) : "Default text";
+    public string Name => Custom?.Name ?? (Type is { } type ? _keywords?.NameOf(type) ?? StyleSheet.DisplayNameOf(type) : "Default text");
 
     /// <summary>A sample line, as it would read on the page (hidden tags and "# " aren't shown there either).</summary>
     public string Example => Type switch
     {
+        null when Custom != null => Custom.Name,
         null => "The quick brown fox",
         ElementType.Heading => "Chapter 1",
         ElementType.Page => Word(ElementType.Page) + " 1",
@@ -47,6 +61,8 @@ public sealed class StyleEntry : ObservableObject
 
     public string Description => Type switch
     {
+        null when Custom != null => (OnlyThisDocument ? "Only in this document. " : "In every document in this project. ")
+            + "Put a line in it from the line menu at the left of the toolbar. It only changes what it sets.",
         null => "The starting point for everything. Other styles only change what they set.",
         ElementType.Heading => "Chapter and scene titles. Pick Heading from the line menu (or start a line with #).",
         ElementType.Page => $"{Word(ElementType.Page)} 1, {Word(ElementType.Page)}S 4-5 … or any line set to {Name} in the line menu.",

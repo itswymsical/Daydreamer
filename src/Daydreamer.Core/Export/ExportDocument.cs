@@ -23,6 +23,7 @@ public sealed record ExportRun(string Text, ResolvedStyle Style, bool Strikethro
 /// <param name="Marker">What a list item shows in front of its words: "•", "3." or a checkbox ("☐" / "☑").</param>
 /// <param name="Number">For numbered items, the number written in the script.</param>
 /// <param name="Character">The character a dialogue line belongs to, if they're defined.</param>
+/// <param name="CustomStyle">The style you made that this line is in, if any.</param>
 public sealed record ExportParagraph(
     ElementType Type,
     ResolvedStyle Style,
@@ -32,7 +33,8 @@ public sealed record ExportParagraph(
     string Marker = "",
     int Number = 0,
     bool IsChecked = false,
-    Character? Character = null)
+    Character? Character = null,
+    NamedStyle? CustomStyle = null)
 {
     /// <summary>The line's words, without its list marker.</summary>
     public string Text => string.Concat(Runs.Select(r => r.Text));
@@ -73,7 +75,11 @@ public sealed class ExportDocument
     public static ExportDocument Build(string title, string text, Project project, ExportOptions? options = null)
     {
         options ??= new ExportOptions();
-        var parser = new ScriptParser(new CharacterRegistry(project.Characters), project.Keywords);
+        var parser = new ScriptParser(new CharacterRegistry(project.Characters), project.Keywords)
+        {
+            CustomStyles = project.StylesFor(title),
+            DialogueMarkup = project.GameFolder != null,
+        };
         var styles = project.Styles;
         var paragraphs = new List<ExportParagraph>();
 
@@ -150,6 +156,6 @@ public sealed class ExportDocument
         };
         int number = line.List == ListKind.Numbered && int.TryParse(marker.TrimEnd('.', ')'), out int n) ? n : 0;
 
-        return new ExportParagraph(line.Type, body, runs, line.IndentLevel, line.List, marker, number, line.IsChecked, line.Character);
+        return new ExportParagraph(line.Type, body, runs, line.IndentLevel, line.List, marker, number, line.IsChecked, line.Character, line.CustomStyle);
     }
 }

@@ -17,6 +17,9 @@ public sealed class DocumentInfo
     public string Title => Path.GetFileNameWithoutExtension(FilePath);
     public DateTime Modified => File.Exists(FilePath) ? File.GetLastWriteTime(FilePath) : DateTime.MinValue;
 
+    /// <summary>Stays at the top of the lists. The pin itself is kept in project.json.</summary>
+    public bool IsPinned { get; init; }
+
     public override string ToString() => Title;
 }
 
@@ -116,10 +119,12 @@ public sealed class Library
 
     // ── Documents ───────────────────────────────────────────────────────────
 
+    /// <summary>A project's documents in the order they're listed: pinned ones first, then by name.</summary>
     public List<DocumentInfo> ListDocuments(Project project) =>
         Directory.EnumerateFiles(project.FolderPath, "*" + DocumentExtension)
-            .Select(f => new DocumentInfo(f))
-            .OrderBy(d => d.Title, NaturalStringComparer.Instance)
+            .Select(f => new DocumentInfo(f) { IsPinned = project.IsPinned(Path.GetFileNameWithoutExtension(f)) })
+            .OrderByDescending(d => d.IsPinned)
+            .ThenBy(d => d.Title, NaturalStringComparer.Instance)
             .ToList();
 
     public DocumentInfo CreateDocument(Project project, string title, string initialText = "")
@@ -180,7 +185,7 @@ public sealed class Library
     /// Writes to a temporary file first and then swaps it in, so a crash or power cut
     /// mid-save can never leave you with a half-written document.
     /// </summary>
-    private static void WriteAtomically(string path, string contents)
+    public static void WriteAtomically(string path, string contents)
     {
         string temp = path + ".saving";
         File.WriteAllText(temp, contents, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));

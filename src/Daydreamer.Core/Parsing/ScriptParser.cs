@@ -9,7 +9,7 @@ namespace Daydreamer.Core.Parsing;
 ///
 /// The rules, checked in order (keywords like PAGE and PANEL can be renamed per project):
 /// <code>
-///   {center} / {page} …           → the line's own settings (hidden in the editor), then the rules below
+///   {center} / {page} / {style:X} → the line's own settings (hidden in the editor), then the rules below
 ///   (empty)                       → Blank
 ///   // anything                   → Note
 ///   !anything                     → Action (forced: "read this as a description, whatever it looks like")
@@ -48,8 +48,8 @@ public sealed partial class ScriptParser
     [GeneratedRegex(@"\G(?<modfull>\s*\((?<mod>[^)]*)\))?\s+(?<body>.*)$")]
     private static partial Regex AfterNameRegex();
 
-    // A line's own settings: "{center} ", "{page} ", "{caption, right} " (validated against known words below).
-    [GeneratedRegex(@"^(?<indent>\s*)\{(?<words>[A-Za-z][A-Za-z ,]*)\}[ \t]?")]
+    // A line's own settings: "{center} ", "{page} ", "{caption, right} ", "{right style:Old Letter} " (words are validated below).
+    [GeneratedRegex(@"^(?<indent>\s*)\{(?:(?<words>[A-Za-z][A-Za-z ,]*?)[ ,]*)?(?:style:(?<style>[^{}]+?)\s*)?\}[ \t]?")]
     private static partial Regex TagRegex();
 
     // **bold** first, then *italic*. Markers must hug the text ("* not italic *" is left alone).
@@ -83,6 +83,7 @@ public sealed partial class ScriptParser
 
     private Keywords _keywords = new();
     private KeywordRules _rules;
+    private Dictionary<string, NamedStyle> _customStyles = new(StringComparer.OrdinalIgnoreCase);
 
     public ScriptParser(CharacterRegistry? registry = null, Keywords? keywords = null)
     {
@@ -105,20 +106,46 @@ public sealed partial class ScriptParser
         }
     }
 
+    /// <summary>
+    /// The styles you've made that this document can use: its own first, then the project's. Set it again
+    /// after they change, or when another document opens (like <see cref="Registry"/>, but for {style:…} tags).
+    /// </summary>
+    public IEnumerable<NamedStyle> CustomStyles
+    {
+        set
+        {
+            _customStyles = new Dictionary<string, NamedStyle>(StringComparer.OrdinalIgnoreCase);
+            foreach (var style in value) _customStyles.TryAdd(style.Name, style);
+        }
+    }
+
+    /// <summary>
+    /// Reads the marks used in game dialogue: pauses <c>[]</c>, effects <c>[shake: words]</c>, <c>[player]</c>, and where a
+    /// choice leads <c>-> Next</c>. The editor hides them like ** except on the line being edited. On for projects with a game folder.
+    /// </summary>
+    public bool DialogueMarkup { get; set; }
+
     public ScriptLine ParseLine(string text)
+    {
+        var line = ParseTagged(text);
+        return DialogueMarkup ? DialogueSyntax.AddMarkup(text, line) : line;
+    }
+
+    private ScriptLine ParseTagged(string text)
     {
         var tag = MatchTag(text);
         if (tag == null) return ParseUntagged(text);
 
         int indent = IndentLevelOf(text, tag.Value.IndentLength);
+        var style = tag.Value.Style is { } name ? _customStyles.GetValueOrDefault(name) : null;
         if (tag.Value.Type is { } type)
-            return BuildTagged(text, tag.Value, type, indent);
+            return BuildTagged(text, tag.Value, type, indent) with { StyleName = tag.Value.Style, CustomStyle = style };
 
-        // An alignment-only tag: read the rest of the line normally, with the tag blanked out so every
+        // A tag without a line type: read the rest of the line normally, with the tag blanked out so every
         // position in the result still matches the real text.
         string masked = text[..tag.Value.Range.Start] + new string(' ', tag.Value.Range.Length) + text[tag.Value.Range.End..];
         var parsed = ParseUntagged(masked);
-        return parsed with { Tag = tag.Value.Range, Alignment = tag.Value.Alignment, IndentLevel = indent };
+        return parsed with { Tag = tag.Value.Range, Alignment = tag.Value.Alignment, IndentLevel = indent, StyleName = tag.Value.Style, CustomStyle = style };
     }
 
     /// <summary>Parses a whole document, one entry per line.</summary>
@@ -144,19 +171,19 @@ public sealed partial class ScriptParser
     }
 
     /// <summary>
-    /// Takes a line apart for editing its tag: the indentation, the tag's line-type word and alignment
-    /// (if any), and the rest of the text.
+    /// Takes a line apart for editing its tag: the indentation, the tag's line-type word, alignment and
+    /// style name (if any), and the rest of the text.
     /// </summary>
-    public (string Indent, string? TypeWord, TextAlign? Alignment, string Text) SplitTag(string line)
+    public (string Indent, string? TypeWord, TextAlign? Alignment, string? Style, string Text) SplitTag(string line)
     {
         var tag = MatchTag(line);
         if (tag == null)
         {
             int start = line.Length - line.TrimStart().Length;
-            return (line[..start], null, null, line[start..]);
+            return (line[..start], null, null, null, line[start..]);
         }
         var t = tag.Value;
-        return (line[..t.IndentLength], t.Type is { } type ? TagWords[type] : null, t.Alignment, line[t.Range.End..]);
+        return (line[..t.IndentLength], t.Type is { } type ? TagWords[type] : null, t.Alignment, t.Style, line[t.Range.End..]);
     }
 
     /// <summary>True for the page and panel keywords ("PAGE", "PANELS", or "SCENE" if that's the project's word).</summary>
@@ -170,11 +197,12 @@ public sealed partial class ScriptParser
     }
 
     /// <summary>Writes a line back with its tag (or without one, if there's nothing to say).</summary>
-    public static string JoinTag(string indent, string? typeWord, TextAlign? alignment, string rest)
+    public static string JoinTag(string indent, string? typeWord, TextAlign? alignment, string rest, string? style = null)
     {
         var words = new List<string>();
         if (typeWord != null) words.Add(typeWord);
         if (alignment != null) words.Add(alignment.Value.ToString().ToLowerInvariant());
+        if (style != null) words.Add("style:" + style); // last: a style's name can have spaces in it
         return words.Count == 0 ? indent + rest : $"{indent}{{{string.Join(" ", words)}}} {rest}";
     }
 
@@ -299,7 +327,7 @@ public sealed partial class ScriptParser
     }
 
     /// <summary>A line whose tag names its type: "{page} The Arrival" → a Page line reading "The Arrival".</summary>
-    private static ScriptLine BuildTagged(string text, (TextRange Range, int IndentLength, ElementType? Type, TextAlign? Alignment) tag, ElementType type, int indent)
+    private static ScriptLine BuildTagged(string text, (TextRange Range, int IndentLength, ElementType? Type, TextAlign? Alignment, string? Style) tag, ElementType type, int indent)
     {
         int bodyStart = tag.Range.End;
         while (bodyStart < text.Length && char.IsWhiteSpace(text[bodyStart])) bodyStart++;
@@ -316,11 +344,14 @@ public sealed partial class ScriptParser
         };
     }
 
-    private (TextRange Range, int IndentLength, ElementType? Type, TextAlign? Alignment)? MatchTag(string text)
+    private (TextRange Range, int IndentLength, ElementType? Type, TextAlign? Alignment, string? Style)? MatchTag(string text)
     {
         if (text.IndexOf('{') < 0) return null;
         var match = TagRegex().Match(text);
         if (!match.Success) return null;
+
+        string? style = match.Groups["style"].Success ? match.Groups["style"].Value.Trim() : null;
+        if (!match.Groups["words"].Success && style == null) return null; // "{}" is just text
 
         ElementType? type = null;
         TextAlign? alignment = null;
@@ -331,7 +362,7 @@ public sealed partial class ScriptParser
             else return null; // something like "{sic}" is just text
         }
         int indentLength = match.Groups["indent"].Length;
-        return (new TextRange(indentLength, match.Length - indentLength), indentLength, type, alignment);
+        return (new TextRange(indentLength, match.Length - indentLength), indentLength, type, alignment, style);
     }
 
     private static (Match Match, ListKind Kind)? MatchList(string text)

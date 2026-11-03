@@ -13,10 +13,26 @@ public readonly record struct TextRange(int Start, int Length)
     public string Of(string text) => IsEmpty ? "" : text.Substring(Start, Length);
 }
 
-public enum InlineKind { Bold, Italic }
+public enum InlineKind
+{
+    Bold,
+    Italic,
+
+    /// <summary>Game dialogue: words with an effect on them, <c>[shake: words]</c>, or a pause, <c>[]</c> (just a marker, no words).</summary>
+    Effect,
+
+    /// <summary>Game dialogue: something the game fills in, <c>[player]</c>. Not checked for spelling.</summary>
+    Token,
+
+    /// <summary>Game dialogue: where a choice leads, <c>-> Greeting_True (dead)</c>. Shown faintly and not checked for spelling.</summary>
+    Flow,
+
+    /// <summary>Game dialogue: a conversation's name in its heading. Looks like the rest of the line, not checked for spelling.</summary>
+    Identifier,
+}
 
 /// <summary>
-/// Inline emphasis inside a line: <c>**bold**</c> or <c>*italic*</c>.
+/// A piece of markup inside a line, such as <c>**bold**</c> or <c>*italic*</c>.
 /// <see cref="Content"/> is the text between the markers.
 /// </summary>
 public sealed record InlineSpan(InlineKind Kind, TextRange OpenMarker, TextRange Content, TextRange CloseMarker);
@@ -74,6 +90,12 @@ public sealed record ScriptLine
     /// <summary>This line's own alignment (from its tag), which wins over its style's alignment.</summary>
     public TextAlign? Alignment { get; init; }
 
+    /// <summary>The name in the line's <c>{style:Letter}</c> tag, even if no such style exists (any more).</summary>
+    public string? StyleName { get; init; }
+
+    /// <summary>The style that name refers to in this document, if there is one. It goes on top of all the line's other styles.</summary>
+    public NamedStyle? CustomStyle { get; init; }
+
     /// <summary>The ** or * around a label written in bold or italic, like <c>**AKIRA** Hi.</c></summary>
     public IReadOnlyList<TextRange> LabelMarkers { get; init; } = [];
 
@@ -110,4 +132,8 @@ public sealed record ScriptLine
         }
         return merged;
     }
+
+    /// <summary>Parts of the line that are names or instructions rather than words to proofread.</summary>
+    public IEnumerable<TextRange> NotProse() =>
+        Inlines.Where(span => span.Kind is InlineKind.Token or InlineKind.Flow or InlineKind.Identifier).Select(span => span.Content);
 }

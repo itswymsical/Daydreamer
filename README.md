@@ -48,6 +48,15 @@ An undefined name in ALL CAPS with a colon (`STRANGER: ...`) still counts as dia
 orange dotted underline. Names that start lots of lines *without* a colon (`KAITO It's late.`)
 are suggested in the Characters panel, and **Add all** adds them in one go.
 
+## Projects and pins
+
+The Home page lists your **projects** above your recent documents. Click one to see everything in it, with page
+previews, and to start or import a document there. The project's name under a document's title goes to the same
+page from wherever you're writing.
+
+**Right-click a document** (in the side list or on a card) and pick **Pin to top**. Pinned documents stay first in
+the document list and get their own row on Home and on the project's page. Pins are saved with the project.
+
 ## Formatting
 
 You don't format words one by one; you format **kinds of lines**. Put the cursor on a line and
@@ -66,6 +75,11 @@ The spacing button sets **line spacing** and **space between paragraphs** (like 
 before paragraph"). **Alignment** works like a word processor instead: it applies to the line
 the cursor is on, or the selected lines. To center *every* caption, use the Caption style's
 Alignment in the side panel.
+
+**Your own styles:** for lines that don't fit the usual kinds, like a letter or an inscription. Make one in
+Styles → Your styles (or from the line menu), for **this document** or **the whole project**, and put lines in it from
+the line menu. It goes on top of whatever the line already is, so a character's line in the Letter style is still
+theirs. It's kept in the line's hidden tag (`{style:Letter}`), and a Word export gets a Word style of that name.
 
 **Shortcuts:** type a name in CAPS to get a character pop-up · Ctrl+Space · Ctrl+B / Ctrl+I ·
 Ctrl+Shift+L / E / R / J align · Ctrl+N new document · Ctrl+F find · Ctrl+S save (it also
@@ -121,6 +135,77 @@ Notes to yourself are left out unless you tick **Include notes to yourself** in 
 Letter or A4 (whichever is usual where your computer is set up), with 1-inch margins. A Word file names its
 fonts but doesn't pack them in, so a computer without them shows a stand-in font; a PDF always has them.
 
+## Game dialogue
+
+Daydreamer can write a game's dialogue: **one document per character**, holding everything they'll ever say.
+**Export → Send to the game** turns it into the two files the mod needs, each in the right place. It was built for
+TrelamiumIII's dialogue system (`Dialogue.Define`, `DialogueLibrary` localization).
+
+```
+// speed: 1.1                                   the character's profile, above the first heading (all optional)
+// tone worried: emote 3, speed 0.9
+
+// Meeting them for the first time.             a note becomes a # comment in the HJSON
+# Greeting                                      a conversation: Silvian.Greeting, in Silvian's document
+SILVIAN: Well,[] howdy![30] Name's Silvian.     a line, with pauses
+SILVIAN (worried): You [shake 0.6: alright]?    a tone for the line, an effect on some of its words
+- I'm fine. -> Greeting_True                    a choice, and the conversation it leads to
+- Who's asking?                                 a choice whose response is written right under it…
+    Just a neighbor, [player].                  …indented, which makes it a conversation of its own
+- ... -> Greeting_Silent (dead)                 (dead): the answer that means no
+// unlock: HerbalForager                        what happens when the conversation ends
+```
+
+Without a name, a line belongs to whoever spoke last in the conversation, or else the document's character.
+
+| You write                               | What it does in the game                             |
+| --------------------------------------- | ---------------------------------------------------- |
+| `[]`                                    | A pause that fits its punctuation (14 to 28 frames)  |
+| `[30]`                                  | `new Pause(30)`                                      |
+| `[shake 0.6: words]`, `[wave: words]`   | `new Shake(0.6f)`, `new Wave()`                      |
+| `[slow 2: words]`, `[fast: words]`      | `new Slow(2f)`, `new Fast()`                         |
+| `[pitch 1.2: words]`                    | `new Pitch(1.2f)`                                    |
+| `[up 0.3: words]`, `[down: words]`      | `Inflection.Up(0.3f)`, `Inflection.Down()`           |
+| `[question: words]`, `[emphasis 0.25 lift 2: words]` | `Inflection.Question()`, `Inflection.Emphasis(0.25f, lift: 2f)` |
+| `[words]`                               | The same as `[emphasis: words]`                      |
+| `[waver: words]`                        | `Inflection.Waver()`                                 |
+| `[inflect to 1.4 steps 4 lift 3: words]` | `new Inflection(1.4f, steps: 4, lift: 3f)`          |
+| `[sound MenuTick:]`                     | `new Sound(SoundID.MenuTick)`                        |
+| `[none: words]`                         | Plain words                                          |
+| `[player]`                              | The player's name (`[speakerName:player]`)           |
+| `(slow)`, `(fast)`, `(speed 0.8)`, `(emote 3)`, `(worried)` | The line's speed and emote: `SILVIAN (slow): …`, or `(slow) …` on a line with no name |
+
+Select some words and right-click → **Dialogue effect** to add one without typing it. In a project with a game folder,
+pauses and effect marks only show on the line you're editing, and words with an effect are colored.
+
+**Notes that do something**, inside a conversation: `// unlock: Job`, `// handin: Job` (under a line's two choices),
+`// complete: Some.Code()`, `// hand-written`. On a choice: `(run: Some.Code())`. **In the profile:** `speed`,
+`tone name`, `speaker: Goblin Tinkerer`, `key: Tinkerer` (when the title isn't the key), `using: Some.Namespace` (for
+your code), `color: 255 110 80`, and `pauses: auto` (a pause after every comma and sentence on lines without any).
+
+**What sending does:**
+
+- **The words** go into the localization file that already has that character, or a new
+  `Localization\DialogueLibrary\<Name>\en-US_Mods.<Mod>.hjson`. Only the document's conversations change; the rest of
+  the file stays as it was, comments included, written the way tModLoader writes it so a diff shows only what changed.
+- **The flow** goes in `Core\Dialogue\Definitions\Written\<Name>WrittenDialogue.cs`, replaced whole on every send. Your
+  hand-written files are never touched. It's a `ModSystem`, so it registers after every `ModDialogue`, and because the
+  registry keeps the last definition of a key, a conversation written here takes over from a hand-written one. No
+  registry or profile document is needed: it's picked up automatically like any other class in the mod.
+- **Speakers:** a character without a profile in `SpeakerRegistry` speaks in gray with no portrait or voice, and you're
+  told. `// color:` gives a new one a generated profile with that color. Portraits and voices still go in `SpeakerRegistry`.
+- **Before anything changes**, it warns about unknown effects and tones, choices that lead nowhere, and hand-written
+  conversations whose anchors no longer match their code. It asks before removing conversations the game has and the
+  document doesn't (keeping them is the default). Replaced files are copied to the project's `.trash\Game exports` first.
+
+**Bringing existing dialogue in:** import a localization `.hjson`. You get one document per character, with speeds,
+emotes, effects, pause lengths and branches read from the mod's C#. Exporting it again gives the same words and flow.
+A conversation whose code can't be carried over is marked `// hand-written`: its words export, and its code stays in
+charge. That's one built by a helper method (`DefineLost`), or one that calls a method private to its class (`GiveLetter`).
+Remove the mark, and fill in its choices, to bring it across.
+
+Only `en-US` and `DialogueLibrary` are handled. Books and other localization are still written by hand.
+
 ## Music
 
 The **Music** tab in the side panel (or the ♪ in the title bar) is a music player for writing to.
@@ -163,6 +248,14 @@ src/Daydreamer.Core/        ← all the logic; no UI code, so it's easy to test 
   Export/ExportDocument       a document worked out for paper: every line's words and looks, markup gone
   Export/DocxExporter         … written as a Word file (styles per kind of line, real lists)
   Export/TextExporter         … or as plain text
+  Game/DialogueBook           a character's document, understood: conversations, lines, choices, tones
+  Game/DialogueEffects        [shake 0.6: words] ↔ new Shake(0.6f)
+  Game/DialogueExporter       … written as HJSON entries and a C# definition
+  Game/GameExporter           where it all goes in the mod, and merging it in
+  Game/GameDefinitions        reads what the mod's C# already defines
+  Game/DialogueImporter       existing dialogue → a document
+  Game/Hjson                  reads and writes HJSON the way tModLoader does
+  Parsing/DialogueSyntax      finds the marks in game dialogue, for the editor to hide and color
   Analysis/DocumentStats      word/page/panel counts, lines per character
   Analysis/SpeakerFinder      spots likely speakers in scripts that don't use colons
   Storage/                    projects are folders, documents are .dream text files
@@ -175,11 +268,13 @@ src/Daydreamer.App/         ← the WPF desktop app
   MainWindow.xaml(.cs)        the window, documents, saving
   MainWindow.Writing.cs       line menu, alignment, lists, hidden tags, paste and import
   MainWindow.Formatting.cs    the toolbar's font/size/color/spacing controls
-  MainWindow.Home.cs          the Home page and its page previews
+  MainWindow.Home.cs          the Home page, project pages, pins and page previews
   MainWindow.Shell.cs         the custom title bar, maximize, snap layouts, theme + ambient toggles
   MainWindow.Layout.cs        focus mode, and hiding the side panel
   MainWindow.Spelling.cs      the wavy underlines, right-click fixes, the mistake count
   MainWindow.Export.cs        the Export menu: asks where to save, then writes the file
+  MainWindow.Game.cs          sending to the game, importing dialogue, the effect menu
+  MainWindow.Styles.cs        styles you make yourself
   Export/PageLayout           puts an exported document on pages with WPF's text engine
   Export/PdfWriter, PdfFont   turns those pages into a PDF, packing in the fonts
   Editor/WindowsSpellChecker  talks to Windows' spell checker (COM)
@@ -243,10 +338,10 @@ every frame (about 20% of a CPU core), while the baked images cost about 4%.
 ```
 Daydreamer/
   My First Manga/
-    project.json      characters, style rules, keywords
+    project.json      characters, style rules, keywords, pins, your styles, the game folder
     Chapter 1.dream   your script (plain UTF-8 text)
     fonts/            fonts that came packed in imported documents
-    .trash/           deleted documents (recoverable)
+    .trash/           deleted documents (recoverable), and files replaced by sending to the game
   Music/              Daydreamer's copies of your songs
     music.json        the song list (titles, artists, lengths) and your playlists
     .trash/           deleted songs (recoverable)

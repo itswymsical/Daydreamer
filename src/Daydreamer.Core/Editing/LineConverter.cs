@@ -23,7 +23,7 @@ public static class LineConverter
         if (parsed.Type == ElementType.Blank) return line;
         if (parsed.Type == target && target != ElementType.Dialogue) return line;
 
-        var (indent, _, alignment, rest) = parser.SplitTag(line); // a line keeps its own alignment
+        var (indent, _, alignment, style, rest) = parser.SplitTag(line); // a line keeps its own alignment and style
         bool fromDialogue = parsed.Type == ElementType.Dialogue;
 
         // A dialogue line converted to anything but a caption keeps its whole text: the usual reason to
@@ -34,16 +34,16 @@ public static class LineConverter
 
         return target switch
         {
-            ElementType.Action => Description(indent, alignment, words, parser),
+            ElementType.Action => Description(indent, alignment, words, parser, style),
             ElementType.Page or ElementType.Panel when parser.ParseLine(words).Type == target =>
-                ScriptParser.JoinTag(indent, null, alignment, words),
+                ScriptParser.JoinTag(indent, null, alignment, words, style),
             ElementType.Caption when fromDialogue && parsed.Speaker != null =>
-                ScriptParser.JoinTag(indent, null, alignment, $"{parser.Keywords.Caption} ({parsed.Speaker}): {parsed.Body.Of(line)}"),
+                ScriptParser.JoinTag(indent, null, alignment, $"{parser.Keywords.Caption} ({parsed.Speaker}): {parsed.Body.Of(line)}", style),
             ElementType.Heading or ElementType.Page or ElementType.Panel or ElementType.Caption or ElementType.Sfx or ElementType.Note =>
-                ScriptParser.JoinTag(indent, ScriptParser.TagWords[target], alignment, words),
+                ScriptParser.JoinTag(indent, ScriptParser.TagWords[target], alignment, words, style),
             ElementType.Dialogue => ScriptParser.JoinTag(indent, null, alignment,
-                (context.Speaker ?? parsed.Speaker ?? "NAME") + context.SpeakerSeparator + (fromDialogue ? parsed.Body.Of(line) : words)),
-            ElementType.ListItem => ScriptParser.JoinTag(indent, null, alignment, "- " + words),
+                (context.Speaker ?? parsed.Speaker ?? "NAME") + context.SpeakerSeparator + (fromDialogue ? parsed.Body.Of(line) : words), style),
+            ElementType.ListItem => ScriptParser.JoinTag(indent, null, alignment, "- " + words, style),
             _ => line,
         };
     }
@@ -72,11 +72,11 @@ public static class LineConverter
     /// <summary>Plain description text — tagged {text} if it would otherwise read as another type.</summary>
     public static string AsDescription(string words, ScriptParser parser) => Description("", null, words, parser);
 
-    private static string Description(string indent, TextAlign? alignment, string words, ScriptParser parser)
+    private static string Description(string indent, TextAlign? alignment, string words, ScriptParser parser, string? style = null)
     {
         if (words.Length == 0 || parser.ParseLine(words).Type is ElementType.Action or ElementType.Blank)
-            return ScriptParser.JoinTag(indent, null, alignment, words);
-        return ScriptParser.JoinTag(indent, ScriptParser.TagWords[ElementType.Action], alignment, words);
+            return ScriptParser.JoinTag(indent, null, alignment, words, style);
+        return ScriptParser.JoinTag(indent, ScriptParser.TagWords[ElementType.Action], alignment, words, style);
     }
 
     public static string LeadingWhitespace(string line) => line[..(line.Length - line.TrimStart().Length)];

@@ -27,6 +27,8 @@
         <app:ElementTypeNameConverter x:Key="ElementTypeName" />
         <app:LineCountConverter x:Key="LineCount" />
         <app:EditedDateConverter x:Key="EditedDate" />
+        <app:PinLabelConverter x:Key="PinLabel" />
+        <BooleanToVisibilityConverter x:Key="BoolToVisible" />
 
         <!-- Toolbar button labels hide on narrow windows, leaving just the icons (see Window_SizeChanged). -->
         <Visibility x:Key="ToolbarLabelVisibility">Visible</Visibility>
@@ -53,6 +55,61 @@
             <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
             <Setter Property="Margin" Value="0,8,0,1" />
         </Style>
+
+        <!-- A document on the Home page or a project's page: a picture of its first page, and its name. -->
+        <DataTemplate x:Key="DocumentCard">
+            <Button Style="{StaticResource HomeCard}" Width="214" Tag="{Binding}" Click="RecentDocument_Click"
+                    AutomationProperties.Name="{Binding Title}">
+                <Button.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="{Binding IsPinned, Converter={StaticResource PinLabel}}" Click="TogglePin_Click" />
+                    </ContextMenu>
+                </Button.ContextMenu>
+                <StackPanel>
+                    <Grid>
+                        <Border Height="252" Background="{DynamicResource PageBrush}" CornerRadius="6"
+                                BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1" ClipToBounds="True">
+                            <controls:DocumentPreview Text="{Binding Preview}" Styles="{Binding Styles}" Characters="{Binding Characters}"
+                                                      Keywords="{Binding Keywords}" CustomStyles="{Binding CustomStyles}" DialogueMarkup="{Binding DialogueMarkup}" />
+                        </Border>
+                        <TextBlock Style="{StaticResource Icon}" Text="&#xE718;" FontSize="13" Margin="0,9,9,0" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                   Foreground="{DynamicResource AccentBrush}" Visibility="{Binding IsPinned, Converter={StaticResource BoolToVisible}}" />
+                    </Grid>
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13.5" Margin="2,10,2,0" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Margin="2,2,2,0" FontSize="11.5" Foreground="{DynamicResource MutedTextBrush}" TextTrimming="CharacterEllipsis">
+                        <Run Text="{Binding ProjectName, Mode=OneWay}" /><Run Text="  ·  " /><Run Text="{Binding EditedText, Mode=OneWay}" />
+                    </TextBlock>
+                </StackPanel>
+            </Button>
+        </DataTemplate>
+
+        <!-- A project on the Home page: its latest document as a cover, and how much is in it. Click for its page. -->
+        <DataTemplate x:Key="ProjectCardTemplate">
+            <Button Style="{StaticResource HomeCard}" Width="214" Tag="{Binding}" Click="ProjectCard_Click"
+                    AutomationProperties.Name="{Binding Name}" ToolTip="See everything in this project">
+                <StackPanel>
+                    <Grid>
+                        <Border Height="120" Background="{DynamicResource PageBrush}" CornerRadius="6"
+                                BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1" ClipToBounds="True">
+                            <controls:DocumentPreview Text="{Binding Latest.Preview}" Styles="{Binding Latest.Styles}" Characters="{Binding Latest.Characters}"
+                                                      Keywords="{Binding Latest.Keywords}" CustomStyles="{Binding Latest.CustomStyles}" DialogueMarkup="{Binding Latest.DialogueMarkup}" />
+                        </Border>
+                        <Border Width="30" Height="30" CornerRadius="8" Margin="8" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+                                Background="{DynamicResource ToolbarBrush}">
+                            <TextBlock Style="{StaticResource Icon}" Text="&#xE8B7;" FontSize="15" HorizontalAlignment="Center"
+                                       Foreground="{DynamicResource AccentBrush}" />
+                        </Border>
+                    </Grid>
+                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13.5" Margin="2,10,2,0" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Details}" Margin="2,2,2,0" FontSize="11.5" TextTrimming="CharacterEllipsis"
+                               Foreground="{DynamicResource MutedTextBrush}" />
+                </StackPanel>
+            </Button>
+        </DataTemplate>
+
+        <ItemsPanelTemplate x:Key="CardRows">
+            <WrapPanel />
+        </ItemsPanelTemplate>
     </Window.Resources>
 
     <!-- When maximized, Windows pushes the window edges slightly off-screen; this border's margin makes up for it. -->
@@ -88,7 +145,8 @@
                     <TextBox x:Name="TitleBox" Style="{StaticResource TitleBox}" HorizontalAlignment="Left" MinWidth="220"
                              FontSize="16" WindowChrome.IsHitTestVisibleInChrome="True"
                              ToolTip="Rename this document" KeyDown="TitleBox_KeyDown" LostKeyboardFocus="TitleBox_LostFocus" />
-                    <TextBlock x:Name="ProjectLabel" Margin="7,0,0,0" FontSize="11.5" Foreground="{DynamicResource MutedTextBrush}" />
+                    <TextBlock x:Name="ProjectLabel" Margin="7,0,0,0" FontSize="11.5" Foreground="{DynamicResource MutedTextBrush}" HorizontalAlignment="Left"
+                               Cursor="Hand" ToolTip="See everything in this project" WindowChrome.IsHitTestVisibleInChrome="True" MouseLeftButtonUp="ProjectLabel_Click" />
                     <TextBlock x:Name="HomeTitle" Text="Daydreamer" FontSize="16" FontWeight="SemiBold" Margin="6,0,0,0" Visibility="Collapsed" />
                 </StackPanel>
 
@@ -180,7 +238,7 @@
                     <Border Style="{StaticResource ToolbarDivider}" />
 
                     <!-- What kind of line this is; pick another to change it (like Google Docs' "Normal text ▾"). -->
-                    <Button x:Name="TypeButton" Style="{StaticResource FlatButton}" Click="TypeButton_Click" Margin="0,0,4,0"
+                    <Button x:Name="TypeButton" Style="{StaticResource FlatButton}" Click="TypeButton_Click" AutomationProperties.Name="Kind of line" Margin="0,0,4,0"
                             ToolTip="What kind of line this is. Pick another kind to change the selected lines.">
                         <StackPanel Orientation="Horizontal">
                             <TextBlock x:Name="TypeLabel" Text="Description" MinWidth="78" />
@@ -408,6 +466,7 @@
                                 <StackPanel Background="Transparent">
                                     <StackPanel.ContextMenu>
                                         <ContextMenu>
+                                            <MenuItem Header="{Binding IsPinned, Converter={StaticResource PinLabel}}" Click="TogglePin_Click" />
                                             <MenuItem Header="Rename" Click="RenameDocumentMenu_Click" />
                                             <!-- Its formats are added as it opens (MainWindow.Export.cs); the empty item gives it its ▸ arrow. -->
                                             <MenuItem Header="Export" SubmenuOpened="ExportSubmenu_Opened">
@@ -420,6 +479,8 @@
                                         <TextBlock Style="{StaticResource Icon}" Text="&#xE8A5;" FontSize="13" Margin="0,0,8,0"
                                                    Foreground="{DynamicResource AccentBrush}" />
                                         <TextBlock Text="{Binding Title}" FontSize="13.5" TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE718;" FontSize="11" Margin="7,1,0,0" ToolTip="Pinned"
+                                                   Foreground="{DynamicResource AccentBrush}" Visibility="{Binding IsPinned, Converter={StaticResource BoolToVisible}}" />
                                     </StackPanel>
                                     <TextBlock Text="{Binding Modified, Converter={StaticResource EditedDate}}" FontSize="11"
                                                Margin="21,1,0,0" Foreground="{DynamicResource MutedTextBrush}" />
@@ -644,6 +705,53 @@
                                         <controls:StyleEditor DataContext="{Binding Style}" />
                                     </StackPanel>
 
+                                    <!-- Styles you make yourself, for one document or a whole project (MainWindow.Styles.cs). -->
+                                    <Border Height="1" Background="{DynamicResource DividerBrush}" Margin="6,20,6,12" />
+                                    <DockPanel Margin="6,0,6,0">
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource AccentButton}" Click="AddStyle_Click" Padding="10,4" AutomationProperties.Name="New style">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Style="{StaticResource Icon}" Text="&#xE710;" FontSize="11" Margin="0,0,6,0" />
+                                                <TextBlock Text="Style" />
+                                            </StackPanel>
+                                        </Button>
+                                        <TextBlock Style="{StaticResource SectionHeader}" Text="YOUR STYLES" Margin="0" VerticalAlignment="Center" />
+                                    </DockPanel>
+                                    <TextBlock Style="{StaticResource Hint}" Margin="6,4,6,6"
+                                               Text="Your own looks for special lines, like a letter or an inscription. Make one for this document or the whole project, then put lines in it from the line menu at the left of the toolbar." />
+
+                                    <ListBox x:Name="CustomStylesList" Style="{StaticResource StaticList}">
+                                        <ListBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <DockPanel>
+                                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Scope}" FontSize="11" Margin="8,0,0,0"
+                                                               Foreground="{DynamicResource MutedTextBrush}" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding Example}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                                                               FontFamily="{Binding PreviewFont}" FontSize="{Binding PreviewSize}"
+                                                               FontWeight="{Binding PreviewWeight}" FontStyle="{Binding PreviewStyle}"
+                                                               Foreground="{Binding PreviewBrush}" TextDecorations="{Binding PreviewDecorations}" />
+                                                </DockPanel>
+                                            </DataTemplate>
+                                        </ListBox.ItemTemplate>
+                                    </ListBox>
+
+                                    <StackPanel Margin="6,6,6,0" DataContext="{Binding SelectedItem, ElementName=CustomStylesList}"
+                                                Visibility="{Binding Converter={StaticResource NullToCollapsed}}">
+                                        <Border Height="1" Background="{DynamicResource DividerBrush}" Margin="0,4,0,10" />
+                                        <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold" />
+                                        <TextBlock Style="{StaticResource Hint}" Text="{Binding Description}" Margin="0,2,0,0" />
+                                        <controls:StyleEditor DataContext="{Binding Style}" />
+                                        <WrapPanel Margin="0,12,0,0">
+                                            <Button Style="{StaticResource FlatButton}" Click="RenameCustomStyle_Click" Content="Rename" />
+                                            <Button Style="{StaticResource FlatButton}" Click="MoveCustomStyle_Click" Content="{Binding MoveLabel}" />
+                                            <Button Style="{StaticResource FlatButton}" Click="DeleteCustomStyle_Click" Foreground="{DynamicResource DangerTextBrush}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE74D;" FontSize="12" Margin="0,0,6,0" />
+                                                    <TextBlock Text="Remove style" />
+                                                </StackPanel>
+                                            </Button>
+                                        </WrapPanel>
+                                    </StackPanel>
+
                                     <!-- The words that start special lines, renamable per project (SCENE instead of PANEL...) -->
                                     <Border Height="1" Background="{DynamicResource DividerBrush}" Margin="6,20,6,12" />
                                     <TextBlock Style="{StaticResource SectionHeader}" Text="KEYWORDS" Margin="6,0,6,0" />
@@ -772,6 +880,19 @@
                                         <TextBlock Grid.Row="6" Style="{StaticResource MapLabel}" Text="Heading 6" />
                                         <ComboBox Grid.Row="6" Grid.Column="1" SelectedItem="{Binding Heading6}" />
                                     </Grid>
+
+                                    <!-- Where this project's dialogue goes (MainWindow.Game.cs). -->
+                                    <Border Height="1" Background="{DynamicResource DividerBrush}" Margin="6,20,6,12" />
+                                    <TextBlock Style="{StaticResource SectionHeader}" Text="GAME DIALOGUE" Margin="6,0,6,0" />
+                                    <TextBlock Style="{StaticResource Hint}" Margin="6,4,6,8"
+                                               Text="The mod this project's dialogue is sent to, with Export → Send to the game. Choosing one also hides pauses and effects on the page, except on the line you're editing. The Guide tab shows how to write it all." />
+                                    <TextBlock x:Name="GameFolderLabel" Margin="6,0,6,6" FontSize="12" TextWrapping="Wrap" />
+                                    <Button Style="{StaticResource FlatButton}" HorizontalAlignment="Left" Margin="2,0,0,0" Click="ChooseGameFolder_Click">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Style="{StaticResource Icon}" Text="&#xE838;" FontSize="12" Margin="0,0,6,0" />
+                                            <TextBlock Text="Choose game folder…" />
+                                        </StackPanel>
+                                    </Button>
                                 </StackPanel>
                             </ScrollViewer>
                         </TabItem>
@@ -1024,6 +1145,30 @@
                                     <TextBlock Style="{StaticResource Hint}"
                                                Text="Import a .docx (Word or Google Docs) or paste from them: headings become pages and panels (Styles → Importing), lists and emphasis come along, centered lines stay centered, and an imported document's font, size and spacing become your project's — with an Undo." />
 
+                                    <TextBlock Style="{StaticResource SectionHeader}" Text="GAME DIALOGUE" Margin="0,22,0,2" />
+                                    <TextBlock Style="{StaticResource Hint}"
+                                               Text="One document per character, with everything they'll ever say. Export → Send to the game writes their words into the mod's localization (HJSON) and their conversations into a definition (C#), each in the right place. Import a localization file to bring existing dialogue in." />
+                                    <TextBlock Style="{StaticResource GuideKey}" Text="# Greeting" />
+                                    <TextBlock Style="{StaticResource Hint}" Text="A conversation. Silvian's document makes this Silvian.Greeting." />
+                                    <TextBlock Style="{StaticResource GuideKey}" Text="SILVIAN: Well, howdy!" />
+                                    <TextBlock Style="{StaticResource Hint}" Text="A line. Without a name, it's the document's character, or whoever spoke last in this conversation." />
+                                    <TextBlock Style="{StaticResource GuideKey}" Text="SILVIAN (slow, worried): Huh." />
+                                    <TextBlock Style="{StaticResource Hint}" Text="A tone for the whole line: slow, fast, speed 0.8, emote 3, or one of your own." />
+                                    <TextBlock Style="{StaticResource GuideKey}" Text="Well,[] howdy![30] Name's Silvian." />
+                                    <TextBlock Style="{StaticResource Hint}" Text="Pauses. [] fits its punctuation, [30] waits 30 frames. They only show on the line you're editing." />
+                                    <TextBlock Style="{StaticResource GuideKey}" Text="[shake 0.6: Don't.]  [up: really]" />
+                                    <TextBlock Style="{StaticResource Hint}" Text="An effect on some words: shake, wave, slow, fast, pitch, up, down, question, emphasis, waver, inflect. Or select the words and right-click → Dialogue effect. [words] alone means emphasis." />
+                                    <TextBlock Style="{StaticResource GuideKey}" Text="[player]" />
+                                    <TextBlock Style="{StaticResource Hint}" Text="The player's name." />
+                                    <TextBlock Style="{StaticResource GuideKey}" Text="- Finding my way. -> Lost" />
+                                    <TextBlock Style="{StaticResource Hint}" Text="A choice, and the conversation it leads to. Add (dead) for the answer that means no, or (run: Some.Code()) to run code." />
+                                    <TextBlock Style="{StaticResource GuideKey}" Text="- Who's asking?&#x0a;      Just a neighbor." />
+                                    <TextBlock Style="{StaticResource Hint}" Text="A response indented under its choice. It becomes a conversation of its own automatically." />
+                                    <TextBlock Style="{StaticResource GuideKey}" Text="// unlock: HerbalForager" />
+                                    <TextBlock Style="{StaticResource Hint}" Text="Notes that do something, in a conversation: unlock: a job, handin: a job (under a line's two choices), complete: code to run at the end, hand-written (leave its flow to the mod's own code). Any other note becomes a comment." />
+                                    <TextBlock Style="{StaticResource GuideKey}" Text="// speed: 1.1&#x0a;// tone worried: emote 3, speed 0.9" />
+                                    <TextBlock Style="{StaticResource Hint}" Text="The character's profile, above the first heading: speed, tone, speaker: Goblin Tinkerer, key: Tinkerer, color: 255 110 80 (for a new character), using: Some.Namespace (for code), pauses: auto (a pause after every comma and sentence on lines without any)." />
+
                                     <TextBlock Style="{StaticResource SectionHeader}" Text="SHORTCUTS" Margin="0,22,0,2" />
                                     <TextBlock Style="{StaticResource Hint}" LineHeight="21">
                                         <Bold>Type a name in CAPS</Bold> — pick the character from the pop-up<LineBreak />
@@ -1046,7 +1191,8 @@
 
             <!-- ═══════════════ Home ═══════════════ -->
             <ScrollViewer x:Name="HomeView" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
-                <StackPanel MaxWidth="1190" Margin="40,10,40,40">
+                <Grid>
+                <StackPanel x:Name="HomeMain" MaxWidth="1190" Margin="40,10,40,40">
                     <TextBlock x:Name="HomeGreeting" FontSize="26" FontWeight="SemiBold" Text="Welcome back" />
                     <TextBlock Style="{StaticResource Hint}" FontSize="13" Margin="0,4,0,0"
                                Text="Pick up where you left off, or start something new." />
@@ -1090,34 +1236,67 @@
                         </Button>
                     </WrapPanel>
 
+                    <TextBlock Style="{StaticResource SectionHeader}" Text="PROJECTS" Margin="0,22,0,10" />
+                    <ItemsControl x:Name="ProjectList" ItemsPanel="{StaticResource CardRows}" ItemTemplate="{StaticResource ProjectCardTemplate}" />
+
+                    <StackPanel x:Name="PinnedSection" Visibility="Collapsed">
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="PINNED" Margin="0,22,0,10" />
+                        <ItemsControl x:Name="PinnedList" ItemsPanel="{StaticResource CardRows}" ItemTemplate="{StaticResource DocumentCard}" />
+                    </StackPanel>
+
                     <TextBlock Style="{StaticResource SectionHeader}" Text="RECENT DOCUMENTS" Margin="0,22,0,10" />
                     <TextBlock x:Name="NoRecent" Style="{StaticResource Hint}" FontSize="13" Visibility="Collapsed"
                                Text="Nothing here yet. Create a document to get started." />
-                    <ItemsControl x:Name="RecentList">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel />
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <Button Style="{StaticResource HomeCard}" Width="214" Tag="{Binding}" Click="RecentDocument_Click"
-                                        AutomationProperties.Name="{Binding Title}">
-                                    <StackPanel>
-                                        <Border Height="252" Background="{DynamicResource PageBrush}" CornerRadius="6"
-                                                BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1" ClipToBounds="True">
-                                            <controls:DocumentPreview Text="{Binding Preview}" Styles="{Binding Styles}" Characters="{Binding Characters}" Keywords="{Binding Keywords}" />
-                                        </Border>
-                                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="13.5" Margin="2,10,2,0" TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Margin="2,2,2,0" FontSize="11.5" Foreground="{DynamicResource MutedTextBrush}" TextTrimming="CharacterEllipsis">
-                                            <Run Text="{Binding ProjectName, Mode=OneWay}" /><Run Text="  ·  " /><Run Text="{Binding EditedText, Mode=OneWay}" />
-                                        </TextBlock>
-                                    </StackPanel>
-                                </Button>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                    <ItemsControl x:Name="RecentList" ItemsPanel="{StaticResource CardRows}" ItemTemplate="{StaticResource DocumentCard}" />
                 </StackPanel>
+
+                <!-- ─── One project's page: everything in it, without opening a document first ─── -->
+                <StackPanel x:Name="ProjectPage" MaxWidth="1190" Margin="40,10,40,40" Visibility="Collapsed">
+                    <Button Style="{StaticResource FlatButton}" HorizontalAlignment="Left" Margin="-8,0,0,6" Click="ProjectPageBack_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource Icon}" Text="&#xE72B;" FontSize="12" Margin="0,0,7,0" />
+                            <TextBlock Text="Home" />
+                        </StackPanel>
+                    </Button>
+                    <DockPanel>
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Style="{StaticResource FlatButton}" Click="ProjectPageFiles_Click" ToolTip="Show the project's files in Explorer">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE838;" FontSize="12" Margin="0,0,6,0" />
+                                    <TextBlock Text="Files" />
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource FlatButton}" Click="ProjectPageImport_Click" Margin="4,0,0,0"
+                                    ToolTip="Import a Word or Google Docs file (.docx), a text file, or game dialogue (.hjson)">
+                                <StackPanel Orientation="Horizontal">
+                                    <Path Style="{StaticResource IconPath}" Data="{StaticResource IconImport}" Width="14" Height="14" Stretch="Uniform" Margin="0,0,6,0" />
+                                    <TextBlock Text="Import" />
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource AccentButton}" Click="ProjectPageNewDocument_Click" Margin="8,0,0,0" Padding="12,5">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE710;" FontSize="11" Margin="0,0,6,0" />
+                                    <TextBlock Text="New document" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock x:Name="ProjectPageTitle" FontSize="26" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                            <TextBlock x:Name="ProjectPageDetails" Style="{StaticResource Hint}" FontSize="13" Margin="0,4,0,0" />
+                        </StackPanel>
+                    </DockPanel>
+
+                    <StackPanel x:Name="ProjectPinnedSection" Visibility="Collapsed">
+                        <TextBlock Style="{StaticResource SectionHeader}" Text="PINNED" Margin="0,28,0,10" />
+                        <ItemsControl x:Name="ProjectPinnedList" ItemsPanel="{StaticResource CardRows}" ItemTemplate="{StaticResource DocumentCard}" />
+                    </StackPanel>
+
+                    <TextBlock x:Name="ProjectDocumentsHeader" Style="{StaticResource SectionHeader}" Text="DOCUMENTS" Margin="0,22,0,10" Visibility="Collapsed" />
+                    <TextBlock x:Name="ProjectPageEmpty" Style="{StaticResource Hint}" FontSize="13" Margin="0,28,0,0" Visibility="Collapsed"
+                               Text="Nothing here yet. Create a document to get started." />
+                    <ItemsControl x:Name="ProjectDocumentList" Margin="0,18,0,0" ItemsPanel="{StaticResource CardRows}" ItemTemplate="{StaticResource DocumentCard}" />
+                </StackPanel>
+                </Grid>
             </ScrollViewer>
             </Grid>
         </DockPanel>

@@ -58,6 +58,8 @@ public partial class MainWindow
             Format("Word document (.docx)", "For Word or Google Docs. Each kind of line becomes a style (Dialogue, Caption, SFX…).", ExportFormat.Word),
             Format("Plain text (.txt)", "Just the words, without any formatting.", ExportFormat.Text),
             new Separator(),
+            GameExportItem(document),
+            new Separator(),
             notes,
         ];
     }

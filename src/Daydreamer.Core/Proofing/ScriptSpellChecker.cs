@@ -110,7 +110,7 @@ public sealed class ScriptSpellChecker
         if (!hasWords || parsed.Body.IsEmpty) return [];
 
         var ranges = new List<TextRange> { parsed.Body };
-        foreach (var markup in parsed.Markup().Append(parsed.ModifierRange).Append(parsed.ListMarker))
+        foreach (var markup in parsed.Markup().Concat(parsed.NotProse()).Append(parsed.ModifierRange).Append(parsed.ListMarker))
             ranges = Subtract(ranges, markup);
         return ranges;
     }
