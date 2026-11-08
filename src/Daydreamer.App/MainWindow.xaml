@@ -1169,6 +1169,20 @@
                                     <TextBlock Style="{StaticResource GuideKey}" Text="// speed: 1.1&#x0a;// tone worried: emote 3, speed 0.9" />
                                     <TextBlock Style="{StaticResource Hint}" Text="The character's profile, above the first heading: speed, tone, speaker: Goblin Tinkerer, key: Tinkerer, color: 255 110 80 (for a new character), using: Some.Namespace (for code), pauses: auto (a pause after every comma and sentence on lines without any)." />
 
+                                    <TextBlock Style="{StaticResource SectionHeader}" Text="GAME BOOKS" Margin="0,22,0,2" />
+                                    <TextBlock Style="{StaticResource Hint}"
+                                               Text="One document per book. Export → Send to the game writes its words into the mod's BookLibrary, changing only this book's own blocks. Importing the BookLibrary .hjson gives you a document for each book." />
+                                    <TextBlock Style="{StaticResource GuideKey}" Text="// book: Lore.Tides" />
+                                    <TextBlock Style="{StaticResource Hint}" Text="At the very top: this document is a book, and this is its key in the mod." />
+                                    <TextBlock Style="{StaticResource GuideKey}" Text="# The Tides" />
+                                    <TextBlock Style="{StaticResource Hint}" Text="The book's title." />
+                                    <TextBlock Style="{StaticResource GuideKey}" Text="## Ch1: Low Water" />
+                                    <TextBlock Style="{StaticResource Hint}" Text="A chapter: its key and its heading. Leave the key out and it's numbered for you. Words right under it are its Opening." />
+                                    <TextBlock Style="{StaticResource GuideKey}" Text="### Excerpt     ### /Prose" />
+                                    <TextBlock Style="{StaticResource Hint}" Text="A block with a name of its own, in this chapter, or with a slash at the top of the book. The name is what the mod's code asks for." />
+                                    <TextBlock Style="{StaticResource GuideKey}" Text="\# Not a heading" />
+                                    <TextBlock Style="{StaticResource Hint}" Text="A blank line is a new paragraph ([p]). A backslash at the start of a line takes it literally; alone, it's an empty line." />
+
                                     <TextBlock Style="{StaticResource SectionHeader}" Text="SHORTCUTS" Margin="0,22,0,2" />
                                     <TextBlock Style="{StaticResource Hint}" LineHeight="21">
                                         <Bold>Type a name in CAPS</Bold> — pick the character from the pop-up<LineBreak />

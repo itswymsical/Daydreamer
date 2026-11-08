@@ -72,7 +72,7 @@ public partial class MainWindow
         var item = new MenuItem
         {
             Header = "Send to the game (HJSON + C#)",
-            ToolTip = "One document per character: writes their words into the mod's localization and their conversations into a definition file.",
+            ToolTip = "One document per character: writes their words into the mod's localization and their conversations into a definition file. A document starting with // book: goes in the mod's BookLibrary instead.",
         };
         item.Click += (_, _) => SendToGame(document);
         return item;
@@ -85,6 +85,12 @@ public partial class MainWindow
         bool isOpen = document.FilePath == _document?.FilePath;
         if (isOpen) SaveDocument();
         string text = isOpen ? Editor.Text : _library.ReadDocument(document);
+
+        if (BookDocument.IsBook(text))
+        {
+            SendBookToGame(BookDocument.Parse(document.Title, text), folder);
+            return;
+        }
 
         DialogueBook book;
         GameExportPlan plan;
@@ -141,6 +147,74 @@ public partial class MainWindow
         ShowInfo($"Sent {book.Group} to the game: {what}. Reload the mod to hear it.", "Show files", () => RevealFile(first), TimeSpan.FromSeconds(30));
     }
 
+    /// <summary>A document with <c>// book:</c> at the top: its words go in the mod's BookLibrary.</summary>
+    private void SendBookToGame(BookDocument book, GameFolder folder)
+    {
+        if (_project == null) return;
+        if (!book.Root.Children.Any())
+        {
+            PromptDialog.Inform(this, "Send to the game", "There's nothing to send yet. Give the book a # title and write under it. The Guide tab shows how.");
+            return;
+        }
+
+        GameExportPlan plan;
+        try
+        {
+            plan = BookExporter.Plan(book, folder);
+            if (plan.Refused is { } refused)
+            {
+                PromptDialog.Inform(this, "Send to the game", refused);
+                return;
+            }
+
+            var problems = book.Issues.Select(issue => $"Line {issue.Line}: {issue.Message}").ToList();
+            if (plan.UnreadWords.Count > 0)
+                problems.Add($"The book's class in the mod doesn't ask for these, so they won't show in the game:\n{Listed(plan.UnreadWords)}");
+            if (problems.Count > 0 && !PromptDialog.Confirm(this, "Send to the game",
+                    $"A few things won't work the way they read:\n\n{string.Join("\n", problems)}", "Send anyway"))
+                return;
+
+            bool removeOthers = plan.NotInDocument.Count > 0 && PromptDialog.Confirm(this, "Send to the game",
+                $"The game has {Plural(plan.NotInDocument.Count, "block")} of {book.Key} that this document doesn't:\n\n{Listed(plan.NotInDocument)}\n\nKeep them in the game?",
+                "Remove them", cancelText: "Keep them");
+
+            bool createDefinition = !plan.NewDefinition || PromptDialog.Confirm(this, "Send to the game",
+                $"The mod has no class for {book.Key}, so the book won't appear in the game without one. Add a generated one?",
+                "Add it", cancelText: "Words only");
+
+            if (removeOthers || !createDefinition)
+                plan = BookExporter.Plan(book, folder, removeOthers, createDefinition);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or HjsonException)
+        {
+            PromptDialog.Inform(this, "Send to the game", $"Couldn't read the game's files, so nothing was changed.\n\n{ex.Message}");
+            return;
+        }
+
+        if (!plan.HasChanges)
+        {
+            ShowInfo($"The game already has this version of {book.Key}.", "OK", () => { });
+            return;
+        }
+
+        try
+        {
+            GameExporter.Apply(plan, Path.Combine(_project.FolderPath, Library.TrashFolderName, "Game exports"));
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            PromptDialog.Inform(this, "Send to the game", $"Couldn't save to the game's folder. If a file is open in another program, close it there and try again.\n\n{ex.Message}");
+            return;
+        }
+
+        var sent = new List<string>();
+        if (plan.Added.Count > 0) sent.Add($"{plan.Added.Count} new");
+        if (plan.Updated.Count > 0) sent.Add($"{plan.Updated.Count} changed");
+        string what = sent.Count > 0 ? $": {string.Join(", ", sent)}" : "";
+        string first = plan.Changes.FirstOrDefault()?.Path ?? folder.Root;
+        ShowInfo($"Sent {book.Key} to the game{what}. Reload the mod to read it.", "Show files", () => RevealFile(first), TimeSpan.FromSeconds(30));
+    }
+
     private static List<string> ProblemsIn(DialogueBook book, GameExportPlan plan)
     {
         var problems = book.Issues.Select(issue => $"Line {issue.Line}: {issue.Message}").ToList();
@@ -174,23 +248,31 @@ public partial class MainWindow
         var folder = GameFolder.ForLocalizationFile(path);
 
         List<ImportedDialogue> imported;
+        List<ImportedBook> books;
         try
         {
-            imported = DialogueImporter.Read(File.ReadAllText(path), folder != null ? GameDefinitions.Read(folder) : null);
+            string hjson = File.ReadAllText(path);
+            imported = DialogueImporter.Read(hjson, folder != null ? GameDefinitions.Read(folder) : null);
+            books = BookImporter.Read(hjson);
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or HjsonException)
         {
             PromptDialog.Inform(this, "Import", $"Couldn't read that file.\n\n{ex.Message}");
             return;
         }
-        if (imported.Count == 0)
+        if (imported.Count == 0 && books.Count == 0)
         {
-            PromptDialog.Inform(this, "Import", $"There's no dialogue in that file (nothing under {DialogueExporter.LibraryKey}).");
+            PromptDialog.Inform(this, "Import", $"There's no dialogue or books in that file (nothing under {DialogueExporter.LibraryKey} or {BookExporter.LibraryKey}).");
             return;
         }
 
         SaveDocument();
         string? firstTitle = null;
+        foreach (var book in books)
+        {
+            // The document's first line says which book it is, so its title is free to be whatever the book's is.
+            firstTitle ??= _library.CreateDocument(_project, book.Title, book.Text).Title;
+        }
         foreach (var dialogue in imported)
         {
             var document = _library.CreateDocument(_project, dialogue.Title, dialogue.Text);
@@ -204,7 +286,10 @@ public partial class MainWindow
         if (folder != null && _project.GameFolder == null) UseGameFolder(folder);
         RefreshDocuments(firstTitle);
         ShowWriting();
-        ShowInfo($"Imported {Plural(imported.Count, "character")}: {string.Join(", ", imported.Select(d => d.Title))}.", "OK", () => { });
+        var parts = new List<string>();
+        if (imported.Count > 0) parts.Add($"{Plural(imported.Count, "character")}: {string.Join(", ", imported.Select(d => d.Title))}");
+        if (books.Count > 0) parts.Add($"{Plural(books.Count, "book")}: {string.Join(", ", books.Select(b => b.Title))}");
+        ShowInfo($"Imported {string.Join("; ", parts)}.", "OK", () => { });
     }
 
     private void AddSpeakers(IEnumerable<string> speakers)

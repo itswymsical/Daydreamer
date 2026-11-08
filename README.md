@@ -204,7 +204,59 @@ A conversation whose code can't be carried over is marked `// hand-written`: its
 charge. That's one built by a helper method (`DefineLost`), or one that calls a method private to its class (`GiveLetter`).
 Remove the mark, and fill in its choices, to bring it across.
 
-Only `en-US` and `DialogueLibrary` are handled. Books and other localization are still written by hand.
+Only `en-US`, `DialogueLibrary` and `BookLibrary` are handled. Other localization is still written by hand.
+
+### Game books
+
+A book is **one document**, and `// book:` at the top is what makes it one. **Export → Send to the game** sends it to
+the mod's `BookLibrary`, the same way dialogue goes to `DialogueLibrary`.
+
+```
+// book: Lore.Tides                             the book's key in the mod (the Key of its ModLoreBook)
+
+# The Tides                                     the title: BookLibrary.Lore.Tides.Title
+
+## Low Water                                    a chapter, numbered for you: Ch1.Title
+It was cold.                                    words right under a heading: Ch1.Opening
+
+It got colder.                                  a blank line is a new paragraph, [p] in the game's text
+Much colder.                                    a single line break stays a line break
+
+## Ch7: High Water                              a chapter with a key of its own
+### Excerpt                                     a block with a name of its own: Ch7.Excerpt
+A line worth quoting.
+### /ContentsHeader                             a leading slash means the top of the book: ContentsHeader
+Contents
+
+// Check this with the map.                     a note is left out of the words; above a heading, it's a # comment in the HJSON
+\# Not a heading                                a backslash at the start of a line takes it literally
+\                                               …and alone, it's an empty line that isn't a new paragraph
+```
+
+The game draws `[p]` and a line break the same way, and tags like `[gloss:Silhouette]` are just written in the words.
+
+**The names matter:** a block's name is the key the book's C# asks for (`.Prose("Ch1.Second")`), and they aren't always
+under the chapter. `Lore.CorridorOfDarkness` reads `Prose` from the top of the book, right after its chapter heading, and
+that's what `### /Prose` is for.
+
+**What sending does:**
+
+- **The words** go in the file that already has the book, or else `Localization\BookLibrary\en-US_Mods.<Mod>.hjson`.
+  Only the document's own blocks change. Other books, `LoreGlossary`, `LoreUI` and comments stay as they were, and a block
+  the game has but the document doesn't stays too, unless you say to remove it when asked.
+- **The layout** stays in the mod's class if it has one for that key (`Core\Books\Lore\Definitions`), and you're warned about
+  any words that class doesn't ask for, because they'd never reach the page. It can follow a helper like
+  `Chapter(book, "Ch1")`; if the keys are built some other way, it doesn't warn.
+- **A book with no class** won't appear in the game, so you're asked whether to add one. It goes in
+  `Core\Books\Lore\Definitions\Written\<Key>Book.cs` and is replaced on every send: a title page with contents if there's a
+  `ContentsHeader`, then each block in order. `Excerpt…` becomes a quote, and `AsideTitle` with `AsideBody` a panel. To
+  take over the look (cover, palette, fonts), move the class out of `Written`. Your own class always wins, and the
+  generated one is then removed.
+- **It won't send** a key that would land on other books: `Misc` when `Misc` holds books, or `Misc.Diary.Extra` inside one.
+  Replaced files are copied to the project's `.trash\Game exports` first.
+
+**Bringing existing books in:** import the `BookLibrary` `.hjson`, and you get one document per book, with every key
+kept. Sending one straight back changes nothing, down to the byte.
 
 ## Music
 
@@ -253,6 +305,8 @@ src/Daydreamer.Core/        ← all the logic; no UI code, so it's easy to test 
   Game/DialogueExporter       … written as HJSON entries and a C# definition
   Game/GameExporter           where it all goes in the mod, and merging it in
   Game/GameDefinitions        reads what the mod's C# already defines
+  Game/BookDocument           a book's document, understood, and an existing book written back out as one
+  Game/BookExporter           where a book goes in the mod, merging it in, and its generated class
   Game/DialogueImporter       existing dialogue → a document
   Game/Hjson                  reads and writes HJSON the way tModLoader does
   Parsing/DialogueSyntax      finds the marks in game dialogue, for the editor to hide and color

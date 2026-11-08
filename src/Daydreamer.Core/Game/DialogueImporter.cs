@@ -143,7 +143,7 @@ public static partial class DialogueImporter
         return "complete: " + target;
     }
 
-    private static string CommentText(string comment)
+    internal static string CommentText(string comment)
     {
         if (comment.StartsWith('#')) return comment[1..].Trim();
         return comment.StartsWith("//", StringComparison.Ordinal) ? comment[2..].Trim() : comment.Trim();

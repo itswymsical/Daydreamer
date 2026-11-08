@@ -71,6 +71,15 @@ public sealed class GameFolder
         return new GameFolder(root, name);
     }
 
+    /// <summary>The mod's book classes. Generated ones go in <see cref="GeneratedFolderName"/> here too.</summary>
+    public string BookDefinitionsFolder => Path.Combine(Root, "Core", "Books", "Definitions");
+
+    public string BookDefinitionFile(BookDocument book) =>
+        Path.Combine(BookDefinitionsFolder, GeneratedFolderName, BookExporter.ClassName(book) + ".cs");
+
+    /// <summary>Where a new book's text goes: <c>Localization\BookLibrary\en-US_Mods.TrelamiumIII.hjson</c>.</summary>
+    public string BookLocalizationFile => Path.Combine(LocalizationRoot, BookExporter.LibraryKey, LocalizationFileName);
+
     public string DefinitionFile(DialogueBook book) =>
         Path.Combine(DefinitionsFolder, GeneratedFolderName, DialogueExporter.ClassName(book) + ".cs");
 
@@ -109,6 +118,15 @@ public sealed class GameExportPlan
 
     /// <summary>Hand-written conversations whose words no longer match their code: the game binds anchors to effects in order.</summary>
     public List<string> MismatchedAnchors { get; } = [];
+
+    /// <summary>A book's words that its hand-written class doesn't ask for, so they'd never reach the page.</summary>
+    public List<string> UnreadWords { get; } = [];
+
+    /// <summary>The mod has no class for this book, so this export adds one. Without it the book isn't in the game.</summary>
+    public bool NewDefinition { get; set; }
+
+    /// <summary>Why this can't be sent at all. The rest of the plan is empty if so.</summary>
+    public string? Refused { get; set; }
 
     public bool HasChanges => Changes.Count > 0 || DefinitionToRemove != null;
 }

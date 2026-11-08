@@ -14,13 +14,14 @@ namespace Daydreamer.Core.Game;
 ///   [inflect to 1.4 steps 4 lift 3: words]  new Inflection(1.4f, steps: 4, lift: 3f)
 ///   [sound MenuTick:]      new Sound(SoundID.MenuTick)
 ///   [none: words]          (nothing: plain words)
+///   [color: color]           (not an effect, but a color change)
 /// </code>
 /// </summary>
 public static partial class DialogueEffects
 {
     /// <summary>Every effect, for menus and messages.</summary>
     public static IReadOnlyList<string> Names { get; } =
-        ["pause", "shake", "wave", "slow", "fast", "pitch", "up", "down", "question", "emphasis", "waver", "inflect", "sound", "none"];
+        ["pause", "shake", "wave", "slow", "fast", "pitch", "up", "down", "question", "emphasis", "waver", "inflect", "sound", "color", "none"];
 
     // Inflection's constructor, in order: doc name → C# parameter.
     private static readonly (string Word, string Parameter)[] InflectParameters =
@@ -56,6 +57,12 @@ public static partial class DialogueEffects
                 case "shake" or "wave" or "slow" or "fast":
                     string type = char.ToUpperInvariant(name[0]) + name[1..];
                     return settings.Count == 0 ? $"new {type}()" : $"new {type}({Float(settings[0])})";
+                case "color": //LETS GO BABY
+                    if (settings.Count == 0) throw new FormatException("color needs rgb values, like [color 255 255 255:]");
+                    return $"new Colorize(new Color({settings[0]}, {settings[1]}, {settings[2]}))";
+                case "size":
+                    if (settings.Count == 0) throw new FormatException("size needs a value, like [size 1.2: words]");
+                    return $"new DialogueScale({Float(settings[0])})";
                 case "pitch":
                     if (settings.Count == 0) throw new FormatException("pitch needs a value, like [pitch 1.2: words]");
                     return $"new Pitch({Float(settings[0])})";

@@ -78,7 +78,11 @@ Daydreamer's way of working: plain text underneath, with formatting applied by r
 - [x] **One document per character** → HJSON localization and a C# definition, with tones, speed and effects in the text.
 - [x] **Importing** existing localization and definitions into documents.
 - [ ] Follow helper methods like `DefineLost` when importing, so fewer conversations stay `// hand-written`.
-- [ ] Other localization: books (`BookLibrary`, which has prose blocks of its own), `SilvianCounsel`, item text.
+- [x] **One document per book** → the mod's `BookLibrary` localization, merged so only that book's own blocks change,
+      with a generated class for a book the mod doesn't define yet. Importing a real book and sending it back leaves the file byte for byte.
+- [ ] Read a hand-written book's block order and styles when importing, so it could be laid out from the document too.
+- [ ] `LoreGlossary` (the terms behind `[gloss:…]`), which sits beside the books in the same file.
+- [ ] Other localization: `SilvianCounsel`, item text.
 - [ ] Other languages than `en-US`.
 
 ## Bigger ideas from earlier
